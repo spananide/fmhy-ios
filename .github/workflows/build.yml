@@ -62,4 +62,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp FMHY.ipa "FMHY-iOS-${GITHUB_REF_NAME}.ipa"
-          gh release create "$GITHUB_REF_NAME" "FMHY-iOS-${GITHUB_REF_NAME}.ipa" screenshot.png screenshot-search.png screenshot-check.png             --title "FMHY for iOS ${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
+          FILES="FMHY-iOS-${GITHUB_REF_NAME}.ipa screenshot.png screenshot-search.png screenshot-check.png"
+          gh release create "$GITHUB_REF_NAME" $FILES --title "FMHY for iOS ${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md             || gh release upload "$GITHUB_REF_NAME" $FILES --clobber
