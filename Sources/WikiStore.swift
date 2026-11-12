@@ -22,7 +22,7 @@ struct WikiSnapshot: Sendable {
     private(set) var search: SearchIndex?
     private(set) var safeGuard: SafeGuard?
 
-    static func bundledDataURL() -> URL {
+    nonisolated static func bundledDataURL() -> URL {
         if let resourceURL = Bundle.main.resourceURL {
             let candidate = resourceURL.appendingPathComponent("Data")
             if FileManager.default.fileExists(atPath: candidate.path) {
