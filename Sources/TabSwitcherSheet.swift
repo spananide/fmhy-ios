@@ -100,7 +100,7 @@ struct TabSwitcherSheet: View {
                         Spacer()
                     }
 
-                    Text(tab.title.isEmpty ? (tab.url?.hostOnly ?? "New Tab") : tab.title)
+                    Text(tab.title.isEmpty ? (tab.url?.absoluteString.hostOnly ?? "New Tab") : tab.title)
                         .font(.subheadline.bold())
                         .foregroundStyle(.primary)
                         .lineLimit(2)

@@ -267,7 +267,7 @@ struct BrowserView: View {
 
     private func syncAddress() {
         guard !isAddressFocused else { return }
-        if let host = tabs.selected?.url?.hostOnly {
+        if let host = tabs.selected?.url?.absoluteString.hostOnly {
             addressText = host
         } else {
             addressText = ""
@@ -312,7 +312,7 @@ struct BrowserView: View {
         } else {
             _ = tabs.newTab(url: url, isPrivate: false, select: true)
         }
-        addressText = url.hostOnly
+        addressText = url.absoluteString.hostOnly
     }
 }
 
