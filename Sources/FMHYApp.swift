@@ -8,6 +8,7 @@ struct FMHYApp: App {
     @StateObject private var hub: BrowserHub
     @StateObject private var changes: ChangesStore
     @StateObject private var follows: Follows
+    @StateObject private var settings = AppSettings()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -36,7 +37,10 @@ struct FMHYApp: App {
                 .environmentObject(hub)
                 .environmentObject(changes)
                 .environmentObject(follows)
-                .tint(fmhyPurple)
+                .environmentObject(settings)
+                .preferredColorScheme(settings.theme.colorScheme)
+                .tint(settings.accent.color)
+                .dynamicTypeSize(settings.textSize.dynamicTypeSize)
                 .task {
                     await store.load()
                 }
@@ -54,12 +58,15 @@ struct FMHYApp: App {
                                 shouldRefresh = true
                             }
                             if shouldRefresh {
-                                await changes.refresh()
-                                Notifier.notifyIfNeeded(
-                                    changes: changes,
-                                    follows: follows,
-                                    sections: store.sections
-                                )
+                                let allowed = await NetworkPolicy.allowsRefresh(wifiOnly: settings.wifiOnlyRefresh)
+                                if allowed {
+                                    await changes.refresh()
+                                    Notifier.notifyIfNeeded(
+                                        changes: changes,
+                                        follows: follows,
+                                        sections: store.sections
+                                    )
+                                }
                             }
                         }
                     case .background:

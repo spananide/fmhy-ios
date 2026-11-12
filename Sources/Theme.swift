@@ -2,6 +2,112 @@ import SwiftUI
 
 let fmhyPurple = Color(red: 0.65, green: 0.19, blue: 0.95)
 
+struct FMHYListStyle: ViewModifier {
+    @EnvironmentObject var settings: AppSettings
+
+    func body(content: Content) -> some View {
+        if settings.theme == .black {
+            content
+                .scrollContentBackground(.hidden)
+                .background(Color.black)
+        } else {
+            content
+        }
+    }
+}
+
+struct FMHYRowBackground: ViewModifier {
+    @EnvironmentObject var settings: AppSettings
+
+    func body(content: Content) -> some View {
+        if settings.theme == .black {
+            content
+                .listRowBackground(Color(white: 0.08))
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func fmhyListStyle() -> some View {
+        modifier(FMHYListStyle())
+    }
+
+    func fmhyRowBackground() -> some View {
+        modifier(FMHYRowBackground())
+    }
+}
+
+enum SectionLayout {
+    static let groups: [(title: String, ids: [String])] = [
+        ("Wiki", [
+            "privacy", "ai", "video", "audio", "gaming", "reading",
+            "downloading", "torrenting", "educational", "mobile",
+            "linux-macos", "non-english", "misc"
+        ]),
+        ("Tools", [
+            "system-tools", "file-tools", "internet-tools", "social-media-tools",
+            "text-tools", "gaming-tools", "image-tools", "video-tools",
+            "audio-tools", "educational-tools", "developer-tools"
+        ]),
+        ("More", [
+            "beginners-guide", "storage", "unsafe"
+        ])
+    ]
+
+    static func layout(sections: [WikiSection]) -> [(title: String, sections: [WikiSection])] {
+        let sectionMap = Dictionary(sections.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let allKnownIds = Set(groups.flatMap { $0.ids })
+        var result: [(title: String, sections: [WikiSection])] = []
+
+        for group in groups {
+            var groupSections = group.ids.compactMap { sectionMap[$0] }
+            if group.title == "More" {
+                let unlisted = sections.filter { !allKnownIds.contains($0.id) }
+                groupSections.append(contentsOf: unlisted)
+            }
+            if !groupSections.isEmpty {
+                result.append((title: group.title, sections: groupSections))
+            }
+        }
+        return result
+    }
+}
+
+func sectionEmoji(_ id: String) -> String {
+    switch id.lowercased() {
+    case "privacy": return "📛"
+    case "ai": return "🤖"
+    case "video": return "📺"
+    case "audio": return "🎵"
+    case "gaming": return "🎮"
+    case "reading": return "📗"
+    case "downloading": return "💾"
+    case "torrenting": return "🌀"
+    case "educational": return "🧠"
+    case "mobile": return "📱"
+    case "linux-macos": return "🐧"
+    case "non-english": return "🌍"
+    case "misc": return "📁"
+    case "system-tools": return "💻"
+    case "file-tools": return "🗃️"
+    case "internet-tools": return "📎"
+    case "social-media-tools": return "💬"
+    case "text-tools": return "📝"
+    case "gaming-tools": return "👾"
+    case "image-tools": return "📷"
+    case "video-tools": return "📼"
+    case "audio-tools": return "🔊"
+    case "educational-tools": return "🍎"
+    case "developer-tools": return "🧑💻"
+    case "beginners-guide": return "📖"
+    case "storage": return "🗄️"
+    case "unsafe": return "⚠️"
+    default: return "📄"
+    }
+}
+
 func sectionSymbol(_ id: String) -> String {
     switch id.lowercased() {
     case "privacy": return "shield.lefthalf.filled"

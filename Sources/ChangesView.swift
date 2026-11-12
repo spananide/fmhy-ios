@@ -196,6 +196,7 @@ struct ChangesView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .fmhyListStyle()
                     .refreshable {
                         await changes.refresh()
                     }

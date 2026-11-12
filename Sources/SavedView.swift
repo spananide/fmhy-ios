@@ -28,6 +28,7 @@ struct SavedView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .fmhyListStyle()
                 }
             }
             .navigationTitle("Saved")

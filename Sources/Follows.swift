@@ -33,6 +33,21 @@ import Combine
         save()
     }
 
+    @discardableResult
+    func merge(ids: [String]) -> Int {
+        var added = 0
+        for id in ids {
+            if !sectionIds.contains(id) {
+                sectionIds.insert(id)
+                added += 1
+            }
+        }
+        if added > 0 {
+            save()
+        }
+        return added
+    }
+
     private func save() {
         let array = Array(sectionIds).sorted()
         if let encoded = try? JSONEncoder().encode(array) {

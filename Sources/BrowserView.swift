@@ -5,6 +5,7 @@ struct BrowserView: View {
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var bookmarks: Bookmarks
     @EnvironmentObject var hub: BrowserHub
+    @EnvironmentObject var settings: AppSettings
     @ObservedObject private var adBlocker = AdBlocker.shared
 
     @FocusState private var isAddressFocused: Bool
@@ -365,8 +366,7 @@ struct BrowserView: View {
         } else if trimmed.contains(".") && !trimmed.contains(" ") {
             targetURL = URL(string: "https://\(trimmed)")
         } else {
-            let query = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
-            targetURL = URL(string: "https://duckduckgo.com/?q=\(query)")
+            targetURL = settings.searchEngine.searchURL(for: trimmed)
         }
 
         guard let url = targetURL else { return }

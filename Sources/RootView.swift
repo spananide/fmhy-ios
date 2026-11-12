@@ -6,6 +6,7 @@ struct RootView: View {
     @EnvironmentObject var tabs: TabManager
     @EnvironmentObject var changes: ChangesStore
     @EnvironmentObject var follows: Follows
+    @EnvironmentObject var settings: AppSettings
     @State private var selectedTab: Int
 
     init() {
@@ -53,6 +54,9 @@ struct RootView: View {
                 }
             }
         }
+        .preferredColorScheme(settings.theme.colorScheme)
+        .tint(settings.accent.color)
+        .dynamicTypeSize(settings.textSize.dynamicTypeSize)
         .onChange(of: hub.requestedTab) { _, newValue in
             if let target = newValue {
                 selectedTab = target
@@ -62,6 +66,10 @@ struct RootView: View {
         .fullScreenCover(item: $hub.safariTarget) { target in
             SafariView(url: target.url)
                 .ignoresSafeArea()
+        }
+        .fullScreenCover(isPresented: $settings.isShowingOnboarding) {
+            OnboardingView()
+                .environmentObject(settings)
         }
         .task {
             if let launchUrlString = UserDefaults.standard.string(forKey: "url"),

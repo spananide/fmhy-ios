@@ -153,6 +153,7 @@ struct SectionView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .fmhyListStyle()
             }
         }
         .navigationTitle(section.title)

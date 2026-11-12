@@ -34,6 +34,7 @@ struct SearchView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .fmhyListStyle()
                 }
             }
             .navigationTitle("Search")
@@ -124,6 +125,7 @@ struct SearchView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .fmhyListStyle()
     }
 
     @ViewBuilder
