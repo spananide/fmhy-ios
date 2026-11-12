@@ -6,4 +6,4 @@ First release of FMHY for iOS (iOS 17+).
 - Typo-tolerant search with filters
 - Bookmarks, link checker, Safari view
 
-Unofficial, not affiliated with FMHY. Feedback: [open an issue](https://github.com/spananide/fmhy-ios/issues/new/choose).
+Official iOS port of FMHY for Android (omeg4-dev); a community app, not an official FMHY project. Feedback: [open an issue](https://github.com/spananide/fmhy-ios/issues/new/choose).

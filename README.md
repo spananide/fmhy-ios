@@ -14,7 +14,7 @@ iOS 17+ · Free & open source · No ads · No tracking · No accounts
 
 </div>
 
-Unofficial iOS port of [FMHY for Android](https://github.com/omeg4-dev/fmhy-android) by omeg4-dev. Not affiliated with the FMHY team.
+The official iOS port of [FMHY for Android](https://github.com/omeg4-dev/fmhy-android) by omeg4-dev. This is a community app: not an official FMHY project and not yet featured on fmhy.net.
 
 ## Features
 - 📴 **Offline from the first launch.** The wiki is bundled; the refresh button pulls the latest from [fmhy/edit](https://github.com/fmhy/edit).
