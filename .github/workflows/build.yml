@@ -33,9 +33,10 @@ jobs:
           UDID=$(xcrun simctl list devices available | grep -m1 iPhone | grep -oE '[0-9A-F-]{36}')
           xcrun simctl boot $UDID
           xcrun simctl install $UDID build/Build/Products/Debug-iphonesimulator/FMHY.app
-          xcrun simctl launch $UDID de.spanani.fmhy
-          sleep 8
-          xcrun simctl io $UDID screenshot screenshot.png
+          shot() { xcrun simctl terminate $UDID de.spanani.fmhy 2>/dev/null || true; xcrun simctl launch $UDID de.spanani.fmhy "${@:2}"; sleep 10; xcrun simctl io $UDID screenshot "$1"; }
+          shot screenshot.png
+          shot screenshot-search.png -tab 1 -query stremo
+          shot screenshot-check.png -tab 3
 
       - name: Unsigned device build
         run: |
@@ -47,5 +48,5 @@ jobs:
         with:
           name: build
           path: |
-            screenshot.png
+            screenshot*.png
             FMHY.ipa

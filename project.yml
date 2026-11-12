@@ -23,6 +23,7 @@ targets:
   FMHYTests:
     type: bundle.unit-test
     platform: iOS
+    deploymentTarget: "17.0"
     sources: [Tests]
     dependencies:
       - target: FMHY
