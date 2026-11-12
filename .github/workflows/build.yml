@@ -19,7 +19,9 @@ jobs:
           xcodegen generate
 
       - name: Unit tests
-        run: xcodebuild -project FMHY.xcodeproj -scheme FMHY -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO test
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -m1 iPhone | grep -oE '[0-9A-F-]{36}')
+          xcodebuild -project FMHY.xcodeproj -scheme FMHY -destination "platform=iOS Simulator,id=$UDID" CODE_SIGNING_ALLOWED=NO test
 
       - name: Simulator build
         run: xcodebuild -project FMHY.xcodeproj -scheme FMHY -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
