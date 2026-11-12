@@ -25,7 +25,7 @@ import WebKit
     private(set) var lists: [WKContentRuleList] = []
 
     private let controllers = NSHashTable<WKUserContentController>.weakObjects()
-    private let cosmeticScript: WKUserScript = Self.makeCosmeticUserScript()
+    private let cosmeticScript: WKUserScript = AdBlocker.makeCosmeticUserScript()
     private var inFlightCompileTask: Task<Int, Never>?
 
     static let cosmeticCSS: String = """
