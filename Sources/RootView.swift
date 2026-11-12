@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var store: WikiStore
+    @EnvironmentObject var hub: BrowserHub
     @State private var selectedTab: Int
 
     init() {
@@ -38,7 +39,29 @@ struct RootView: View {
                             Label("Check", systemImage: "checkmark.shield")
                         }
                         .tag(3)
+
+                    BrowserView()
+                        .tabItem {
+                            Label("Browser", systemImage: "safari")
+                        }
+                        .tag(4)
                 }
+            }
+        }
+        .onChange(of: hub.requestedTab) { _, newValue in
+            if let target = newValue {
+                selectedTab = target
+                hub.requestedTab = nil
+            }
+        }
+        .fullScreenCover(item: $hub.safariTarget) { target in
+            SafariView(url: target.url)
+                .ignoresSafeArea()
+        }
+        .task {
+            if let launchUrlString = UserDefaults.standard.string(forKey: "url"),
+               let target = SafariTarget(urlString: launchUrlString) {
+                hub.open(target.url)
             }
         }
     }

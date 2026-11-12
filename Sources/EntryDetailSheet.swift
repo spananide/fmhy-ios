@@ -3,8 +3,8 @@ import SwiftUI
 struct EntryDetailSheet: View {
     let entry: Entry
     @EnvironmentObject var bookmarks: Bookmarks
+    @EnvironmentObject var hub: BrowserHub
     @Environment(\.dismiss) private var dismiss
-    @State private var safariTarget: SafariTarget?
 
     var body: some View {
         NavigationStack {
@@ -56,7 +56,8 @@ struct EntryDetailSheet: View {
 
                     Button {
                         if let target = SafariTarget(urlString: entry.url) {
-                            safariTarget = target
+                            dismiss()
+                            hub.open(target.url)
                         }
                     } label: {
                         Label("Open site", systemImage: "safari")
@@ -70,6 +71,15 @@ struct EntryDetailSheet: View {
                 }
 
                 SwiftUI.Section {
+                    Button {
+                        if let target = SafariTarget(urlString: entry.url) {
+                            UIApplication.shared.open(target.url)
+                        }
+                    } label: {
+                        Label("Open in Safari", systemImage: "safari")
+                    }
+                    .disabled(SafariTarget(urlString: entry.url) == nil)
+
                     Button {
                         UIPasteboard.general.string = entry.url
                     } label: {
@@ -99,7 +109,8 @@ struct EntryDetailSheet: View {
                             let mirror = entry.mirrors[index]
                             Button {
                                 if let target = SafariTarget(urlString: mirror.url) {
-                                    safariTarget = target
+                                    dismiss()
+                                    hub.open(target.url)
                                 }
                             } label: {
                                 HStack {
@@ -125,7 +136,8 @@ struct EntryDetailSheet: View {
                             let extra = entry.extraLinks[index]
                             Button {
                                 if let target = SafariTarget(urlString: extra.url) {
-                                    safariTarget = target
+                                    dismiss()
+                                    hub.open(target.url)
                                 }
                             } label: {
                                 HStack {
@@ -157,9 +169,5 @@ struct EntryDetailSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
-        .fullScreenCover(item: $safariTarget) { target in
-            SafariView(url: target.url)
-                .ignoresSafeArea()
-        }
     }
 }

@@ -14,6 +14,7 @@ struct WikiSnapshot: Sendable {
     @Published private(set) var sections: [WikiSection] = []
     @Published private(set) var headings: [Heading] = []
     @Published private(set) var entries: [Entry] = []
+    @Published private(set) var sectionCounts: [String: Int] = [:]
     @Published private(set) var notes: [Note] = []
     @Published private(set) var isLoading = true
     @Published private(set) var isRefreshing = false
@@ -21,6 +22,12 @@ struct WikiSnapshot: Sendable {
     @Published private(set) var errorMessage: String?
     private(set) var search: SearchIndex?
     private(set) var safeGuard: SafeGuard?
+
+    var totalSites: Int { entries.count }
+
+    nonisolated static func sectionCounts(entries: [Entry]) -> [String: Int] {
+        Dictionary(grouping: entries, by: { $0.sectionId }).mapValues { $0.count }
+    }
 
     nonisolated static func bundledDataURL() -> URL {
         if let resourceURL = Bundle.main.resourceURL {
@@ -124,6 +131,7 @@ struct WikiSnapshot: Sendable {
             self.sections = snapshot.sections
             self.headings = snapshot.headings
             self.entries = snapshot.entries
+            self.sectionCounts = Self.sectionCounts(entries: snapshot.entries)
             self.notes = snapshot.notes
             self.search = snapshot.search
             self.safeGuard = snapshot.safeGuard
@@ -246,6 +254,7 @@ struct WikiSnapshot: Sendable {
             self.sections = snapshot.sections
             self.headings = snapshot.headings
             self.entries = snapshot.entries
+            self.sectionCounts = Self.sectionCounts(entries: snapshot.entries)
             self.notes = snapshot.notes
             self.search = snapshot.search
             self.safeGuard = snapshot.safeGuard

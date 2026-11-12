@@ -3,6 +3,25 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var store: WikiStore
 
+    private static let countFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter
+    }()
+
+    private func formatSiteCount(_ count: Int) -> String {
+        let formatted = Self.countFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
+        return count == 1 ? "\(formatted) site" : "\(formatted) sites"
+    }
+
+    private var listHeaderText: String {
+        let formattedTotal = Self.countFormatter.string(from: NSNumber(value: store.totalSites)) ?? "\(store.totalSites)"
+        let sitesText = store.totalSites == 1 ? "\(formattedTotal) site" : "\(formattedTotal) sites"
+        let activeCategories = store.sections.filter { (store.sectionCounts[$0.id] ?? 0) > 0 }.count
+        let categoriesText = activeCategories == 1 ? "1 category" : "\(activeCategories) categories"
+        return "\(sitesText) in \(categoriesText)"
+    }
+
     private var footerText: String {
         if let date = store.lastUpdated {
             let formatter = RelativeDateTimeFormatter()
@@ -36,11 +55,19 @@ struct HomeView: View {
                                             .foregroundStyle(.secondary)
                                             .lineLimit(2)
                                     }
+
+                                    let count = store.sectionCounts[section.id] ?? 0
+                                    Text(formatSiteCount(count))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
                                 .padding(.vertical, 2)
                             }
                         }
                     }
+                } header: {
+                    Text(listHeaderText)
+                        .textCase(nil)
                 } footer: {
                     VStack(alignment: .center, spacing: 4) {
                         if let error = store.errorMessage {

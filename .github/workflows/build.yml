@@ -18,6 +18,11 @@ jobs:
       - name: Fetch fresh wiki data
         run: bash tools/fetch-data.sh
 
+      - name: Build ad-block rules
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/build-blocklist.sh
+
       - name: Install XcodeGen and generate project
         run: |
           brew install xcodegen

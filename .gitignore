@@ -7,3 +7,4 @@ screenshot.png
 .DS_Store
 xcuserdata/
 ref/
+Data/blocklist-*.json

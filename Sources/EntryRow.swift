@@ -5,7 +5,7 @@ struct EntryRow: View {
     let onSelect: (Entry) -> Void
 
     @EnvironmentObject var bookmarks: Bookmarks
-    @State private var safariTarget: SafariTarget?
+    @EnvironmentObject var hub: BrowserHub
 
     private var subtitle: String {
         entry.description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -66,10 +66,19 @@ struct EntryRow: View {
         .contextMenu {
             Button {
                 if let target = SafariTarget(urlString: entry.url) {
-                    safariTarget = target
+                    hub.open(target.url)
                 }
             } label: {
                 Label("Open site", systemImage: "safari")
+            }
+            .disabled(SafariTarget(urlString: entry.url) == nil)
+
+            Button {
+                if let target = SafariTarget(urlString: entry.url) {
+                    UIApplication.shared.open(target.url)
+                }
+            } label: {
+                Label("Open in Safari", systemImage: "safari")
             }
             .disabled(SafariTarget(urlString: entry.url) == nil)
 
@@ -93,10 +102,6 @@ struct EntryRow: View {
                     systemImage: bookmarks.isSaved(entry.id) ? "bookmark.slash" : "bookmark"
                 )
             }
-        }
-        .fullScreenCover(item: $safariTarget) { target in
-            SafariView(url: target.url)
-                .ignoresSafeArea()
         }
     }
 }
