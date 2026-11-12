@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var store: WikiStore
+    @EnvironmentObject var follows: Follows
 
     private static let countFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
@@ -62,6 +63,14 @@ struct HomeView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .padding(.vertical, 2)
+
+                                if follows.isFollowing(section.id) {
+                                    Spacer()
+                                    Image(systemName: "bell.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(fmhyPurple)
+                                        .accessibilityLabel("Followed")
+                                }
                             }
                         }
                     }

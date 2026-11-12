@@ -6,6 +6,7 @@ struct EntryRow: View {
 
     @EnvironmentObject var bookmarks: Bookmarks
     @EnvironmentObject var hub: BrowserHub
+    @EnvironmentObject var changes: ChangesStore
 
     private var subtitle: String {
         entry.description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -29,9 +30,21 @@ struct EntryRow: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(entry.name)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
+                    HStack(alignment: .center, spacing: 6) {
+                        Text(entry.name)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        if changes.isRecentlyAdded(url: entry.url) {
+                            Text("NEW")
+                                .font(.caption2.bold())
+                                .foregroundStyle(fmhyPurple)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(fmhyPurple.opacity(0.15))
+                                .clipShape(Capsule())
+                        }
+                    }
 
                     if !subtitle.isEmpty {
                         Text(subtitle)

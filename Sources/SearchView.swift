@@ -6,10 +6,15 @@ struct SearchView: View {
     @State private var results: [SearchResult] = []
     @State private var isSearching = false
     @State private var selectedEntry: Entry?
+    @State private var isCheckPresented: Bool
 
     init() {
         let initialQuery = UserDefaults.standard.string(forKey: "query") ?? ""
         _query = State(initialValue: initialQuery)
+
+        let showCheck = UserDefaults.standard.bool(forKey: "showCheck")
+        let tab = UserDefaults.standard.integer(forKey: "tab")
+        _isCheckPresented = State(initialValue: showCheck || tab == 3)
     }
 
     var body: some View {
@@ -65,6 +70,19 @@ struct SearchView: View {
                     self.results = searchResults
                     self.isSearching = false
                 }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isCheckPresented = true
+                    } label: {
+                        Image(systemName: "checkmark.shield")
+                    }
+                    .accessibilityLabel("Check a link")
+                }
+            }
+            .sheet(isPresented: $isCheckPresented) {
+                CheckLinkView()
             }
             .sheet(item: $selectedEntry) { entry in
                 EntryDetailSheet(entry: entry)

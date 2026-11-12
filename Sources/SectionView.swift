@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct SectionGroup: Identifiable {
     let id: String
@@ -10,6 +11,7 @@ struct SectionGroup: Identifiable {
 struct SectionView: View {
     let section: WikiSection
     @EnvironmentObject var store: WikiStore
+    @EnvironmentObject var follows: Follows
 
     @State private var allGroups: [SectionGroup] = []
     @State private var displayedGroups: [SectionGroup] = []
@@ -154,6 +156,26 @@ struct SectionView: View {
             }
         }
         .navigationTitle(section.title)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    let wasEmpty = follows.isEmpty
+                    let willFollow = !follows.isFollowing(section.id)
+                    follows.toggle(section.id)
+                    if willFollow && wasEmpty {
+                        Task {
+                            let settings = await UNUserNotificationCenter.current().notificationSettings()
+                            if settings.authorizationStatus != .authorized && settings.authorizationStatus != .provisional {
+                                _ = await Notifier.requestAuthorization()
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: follows.isFollowing(section.id) ? "bell.fill" : "bell")
+                }
+                .accessibilityLabel("Follow category")
+            }
+        }
         .searchable(text: $filterText, prompt: "Filter in \(section.title)")
         .task {
             computeGroups()

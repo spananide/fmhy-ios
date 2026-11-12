@@ -4,10 +4,13 @@ struct RootView: View {
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var hub: BrowserHub
     @EnvironmentObject var tabs: TabManager
+    @EnvironmentObject var changes: ChangesStore
+    @EnvironmentObject var follows: Follows
     @State private var selectedTab: Int
 
     init() {
-        let initialTab = UserDefaults.standard.integer(forKey: "tab")
+        let rawTab = UserDefaults.standard.integer(forKey: "tab")
+        let initialTab = (rawTab == 3) ? 1 : rawTab
         _selectedTab = State(initialValue: initialTab)
     }
 
@@ -35,17 +38,18 @@ struct RootView: View {
                         }
                         .tag(2)
 
-                    CheckLinkView()
-                        .tabItem {
-                            Label("Check", systemImage: "checkmark.shield")
-                        }
-                        .tag(3)
-
                     BrowserView()
                         .tabItem {
                             Label("Browser", systemImage: "safari")
                         }
                         .tag(4)
+
+                    ChangesView()
+                        .tabItem {
+                            Label("What's new", systemImage: "bell")
+                        }
+                        .badge(changes.newCount(followed: follows.sectionIds) > 0 ? changes.newCount(followed: follows.sectionIds) : 0)
+                        .tag(5)
                 }
             }
         }
