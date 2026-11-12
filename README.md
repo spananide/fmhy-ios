@@ -38,6 +38,13 @@ The app is not on the App Store, so you sideload the `.ipa` from [Releases](http
 
 **Option B: [SideStore](https://sidestore.io) or [AltStore](https://altstore.io)** — add the `.ipa` from the Files app. SideStore refreshes by itself without a computer.
 
+**Option C: Linux**
+Sideloadly has no Linux version, use one of these instead:
+1. Install the USB helpers: `sudo apt install usbmuxd libimobiledevice-utils` (Fedora: `sudo dnf install usbmuxd libimobiledevice-utils`, Arch: `sudo pacman -S usbmuxd libimobiledevice`), then plug in the iPhone and tap **Trust**.
+2. Install [Sideloader](https://github.com/Dadoum/Sideloader) (native Linux app) or [iloader](https://github.com/nab138/iloader), sign in with your Apple ID and pick `FMHY-iOS-vX.Y.Z.ipa`.
+3. On the iPhone: Settings → General → VPN & Device Management → trust your Apple ID, and turn on **Developer Mode** (Settings → Privacy & Security), then restart.
+4. Tip: iloader can also install [SideStore](https://sidestore.io), which then refreshes the app every week by itself without the PC.
+
 A free Apple ID signs apps for **7 days**: reopen Sideloadly (or SideStore) once a week to refresh. Free accounts can have 3 sideloaded apps at once. Your bookmarks survive a refresh.
 
 ## Feedback & bugs
