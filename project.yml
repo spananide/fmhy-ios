@@ -11,6 +11,11 @@ targets:
       - Assets.xcassets
       - path: Data
         type: folder
+    info:
+      path: Info.generated.plist
+      properties:
+        BGTaskSchedulerPermittedIdentifiers: [de.spanani.fmhy.refresh]
+        UIBackgroundModes: [fetch]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.spanani.fmhy
