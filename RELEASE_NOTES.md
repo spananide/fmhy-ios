@@ -1,10 +1,8 @@
-**What's new in 1.2.0**
-- **What's new feed:** added / removed / starred / moved sites of the last 120 days, filters, "NEW" badges on rows
-- **Follow categories** (bell in a category) with local notifications for new sites
-- **Settings:** theme (light, dark, pure black), accent colour, text size, search engine, open links in-app or Safari, ad-block allowlist, Wi-Fi-only refresh
-- **Backup & restore** of bookmarks, followed categories and settings
-- **Welcome screen** on first launch, About page with credits and privacy
-- Wiki tab now has the same order and groups as fmhy.net, with emoji icons
+**What's new in 1.3.0**
+- **Download manager:** files from the built-in browser are saved in the app's Downloads folder (also visible in the Files app), with progress, share/preview and delete
+- Add a download by URL, pause and resume
+- Warning before opening risky file types (.ipa, .exe, .apk, ...)
+- Optional **VirusTotal check** with your own API key (Settings > Downloads). Only the file's SHA-256 hash is sent, never the file
 
 **Install:** download the `.ipa` below and sideload it with [Sideloadly](https://sideloadly.io), SideStore/AltStore, or on Linux with Sideloader/iloader. Details in the [README](https://github.com/spananide/fmhy-ios#install-free-no-mac-needed).
 

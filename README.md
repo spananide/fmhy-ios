@@ -26,10 +26,11 @@ The official iOS port of [FMHY for Android](https://github.com/omeg4-dev/fmhy-an
 - 🚫 **Ad blocking:** ~119,000 rules (EasyList, EasyPrivacy, Peter Lowe's list, FMHY filterlist), cookie-banner hiding and popup limiting, switchable per site.
 - 📊 Site counts, in the same order and groups as fmhy.net (Wiki, Tools, More).
 - 🔔 **What's new:** added, removed, starred and moved sites from the last 120 days (feed by omeg4-dev), "NEW" badges, and follow categories to get a notification when new sites arrive (iOS may delay background checks).
+- ⬇️ **Downloads:** files from the browser land in the app's Downloads folder (visible in the Files app) with progress, pause/resume for link downloads, share/preview, a warning before opening risky files (.ipa, .exe, .apk, ...), and an optional VirusTotal hash check with your own free API key (only the file's hash is sent).
 - ⚙️ **Settings:** light/dark/pure-black theme, accent colour, text size, search engine, open links in-app or Safari, ad-block allowlist, Wi-Fi-only refresh, backup and restore of bookmarks and follows.
 - 🔒 No analytics, no servers of mine in between.
 
-Coming next: download manager and VirusTotal check (with your own key). Not planned: Android-only features (Material You, shortcuts).
+Not in the iOS version: home-screen widgets (free Apple ID signing makes extensions unreliable), Android-only features (Material You, shortcuts).
 
 ## Install (free, no Mac needed)
 The app is not on the App Store, so you sideload the `.ipa` from [Releases](https://github.com/spananide/fmhy-ios/releases/latest).
