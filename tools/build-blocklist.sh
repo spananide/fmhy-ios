@@ -3,8 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 W=$(mktemp -d)
-gh release download -R AdguardTeam/SafariConverterLib --pattern ConverterTool -D "$W"
-chmod +x "$W/ConverterTool"; xattr -d com.apple.quarantine "$W/ConverterTool" 2>/dev/null || true
+# the released binary needs its resource bundle next to it, so build from source (bundle lands beside the tool)
+git clone -q --depth 1 --branch v4.3.1 https://github.com/AdguardTeam/SafariConverterLib "$W/src"
+(cd "$W/src" && swift build -q -c release --product ConverterTool)
+TOOL="$W/src/.build/release/ConverterTool"
 for u in \
   https://easylist.to/easylist/easylist.txt \
   https://easylist.to/easylist/easyprivacy.txt \
@@ -12,7 +14,7 @@ for u in \
   https://raw.githubusercontent.com/fmhy/FMHYFilterlist/main/filterlist.txt; do
   curl -fsSL "$u" >> "$W/rules.txt"; echo >> "$W/rules.txt"
 done
-"$W/ConverterTool" convert --safari-version 17 --advanced-blocking false \
+"$TOOL" convert --safari-version 17 --advanced-blocking false \
   --input-path "$W/rules.txt" --safari-rules-json-path "$W/all.json"
 rm -f Data/blocklist-*.json
 python3 - "$W/all.json" <<'PY'
