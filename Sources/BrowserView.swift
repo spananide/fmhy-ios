@@ -6,6 +6,7 @@ struct BrowserView: View {
     @EnvironmentObject var bookmarks: Bookmarks
     @EnvironmentObject var hub: BrowserHub
     @EnvironmentObject var settings: AppSettings
+    @EnvironmentObject var downloads: DownloadManager
     @ObservedObject private var adBlocker = AdBlocker.shared
 
     @FocusState private var isAddressFocused: Bool
@@ -14,6 +15,8 @@ struct BrowserView: View {
     @State private var cachedVerdict: Verdict?
     @State private var showSafetySheet = false
     @State private var showTabSwitcher = false
+    @State private var showDownloadsSheet = false
+    @State private var showDownloadToast = false
 
     private var currentHost: String? {
         guard let host = tabs.selected?.url?.host, !host.isEmpty else {
@@ -104,6 +107,38 @@ struct BrowserView: View {
         }
         .sheet(isPresented: $showTabSwitcher) {
             TabSwitcherSheet()
+        }
+        .sheet(isPresented: $showDownloadsSheet) {
+            DownloadsView()
+        }
+        .onChange(of: tabs.selected?.lastDownloadStartedAt) { _, newValue in
+            guard newValue != nil else { return }
+            withAnimation(.easeInOut(duration: 0.25)) {
+                showDownloadToast = true
+            }
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showDownloadToast = false
+                }
+            }
+        }
+        .overlay(alignment: .top) {
+            if showDownloadToast {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Download started")
+                        .font(.subheadline.bold())
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .shadow(radius: 4)
+                .padding(.top, 50)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
         .alert(
             "Blocked unsafe site",
@@ -264,6 +299,16 @@ struct BrowserView: View {
             Spacer()
 
             Menu {
+                Button {
+                    showDownloadsSheet = true
+                } label: {
+                    if downloads.activeCount > 0 {
+                        Label("Downloads (\(downloads.activeCount))", systemImage: "arrow.down.circle.fill")
+                    } else {
+                        Label("Downloads", systemImage: "arrow.down.circle")
+                    }
+                }
+
                 Button {
                     if let url = tabs.selected?.url {
                         UIPasteboard.general.string = url.absoluteString

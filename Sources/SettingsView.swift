@@ -10,6 +10,7 @@ struct SettingsView: View {
     @EnvironmentObject var hub: BrowserHub
     @EnvironmentObject var changes: ChangesStore
     @EnvironmentObject var follows: Follows
+    @EnvironmentObject var downloads: DownloadManager
 
     @ObservedObject private var adBlocker = AdBlocker.shared
 
@@ -19,6 +20,9 @@ struct SettingsView: View {
     @State private var backupAlertTitle = ""
     @State private var backupAlertMessage = ""
     @State private var showBackupAlert = false
+    @State private var vtApiKey: String = ""
+    @AppStorage("downloads.warnRisky") private var warnRiskyFiles: Bool = true
+    @State private var showDownloadsSheet = false
 
     private var appVersionString: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -65,6 +69,7 @@ struct SettingsView: View {
             List {
                 appearanceSection
                 browserSection
+                downloadsSection
                 dataSection
                 notificationsSection
                 followingSection
@@ -81,9 +86,16 @@ struct SettingsView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showDownloadsSheet) {
+                DownloadsView()
+            }
             .task {
                 await updateNotificationStatus()
                 refreshExportFile()
+                vtApiKey = KeychainStore.get("vt.apiKey") ?? ""
+            }
+            .onDisappear {
+                saveVTKey()
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -208,6 +220,62 @@ struct SettingsView: View {
             .fmhyRowBackground()
         } header: {
             Text("Browser")
+        }
+    }
+
+    // MARK: - Downloads
+
+    private var downloadsSection: some View {
+        SwiftUI.Section {
+            Button {
+                showDownloadsSheet = true
+            } label: {
+                HStack {
+                    Label("Downloads", systemImage: "arrow.down.circle")
+                    Spacer()
+                    if downloads.activeCount > 0 {
+                        Text("\(downloads.activeCount) active")
+                            .foregroundStyle(.secondary)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .foregroundStyle(.primary)
+            .fmhyRowBackground()
+
+            Toggle("Warn before opening risky files", isOn: $warnRiskyFiles)
+                .fmhyRowBackground()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("VirusTotal API key")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                SecureField("API key", text: $vtApiKey)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .onSubmit {
+                        saveVTKey()
+                    }
+
+                if !vtApiKey.isEmpty || KeychainStore.get("vt.apiKey") != nil {
+                    Button(role: .destructive) {
+                        vtApiKey = ""
+                        KeychainStore.set(nil, for: "vt.apiKey")
+                    } label: {
+                        Text("Remove key")
+                            .font(.footnote)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+            .fmhyRowBackground()
+        } header: {
+            Text("Downloads")
+        } footer: {
+            Text("Optional. Free keys from virustotal.com. Only the file's SHA-256 hash is sent, never the file.")
         }
     }
 
@@ -441,6 +509,11 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
+
+    private func saveVTKey() {
+        let trimmed = vtApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        KeychainStore.set(trimmed.isEmpty ? nil : trimmed, for: "vt.apiKey")
+    }
 
     private func updateNotificationStatus() async {
         let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()

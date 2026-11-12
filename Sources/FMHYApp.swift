@@ -9,6 +9,7 @@ struct FMHYApp: App {
     @StateObject private var changes: ChangesStore
     @StateObject private var follows: Follows
     @StateObject private var settings = AppSettings()
+    @StateObject private var downloads: DownloadManager
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -17,12 +18,18 @@ struct FMHYApp: App {
         let wikiStore = WikiStore()
         let changesStore = ChangesStore()
         let followsStore = Follows()
+        let downloadManager = DownloadManager()
+
+        tabManager.downloadHandler = { download, url in
+            downloadManager.adopt(download, suggestedFilename: nil, sourceURL: url)
+        }
 
         _tabs = StateObject(wrappedValue: tabManager)
         _hub = StateObject(wrappedValue: BrowserHub(tabs: tabManager))
         _store = StateObject(wrappedValue: wikiStore)
         _changes = StateObject(wrappedValue: changesStore)
         _follows = StateObject(wrappedValue: followsStore)
+        _downloads = StateObject(wrappedValue: downloadManager)
 
         Notifier.configure(changes: changesStore, follows: followsStore, store: wikiStore)
         Notifier.registerBackgroundRefresh()
@@ -38,6 +45,7 @@ struct FMHYApp: App {
                 .environmentObject(changes)
                 .environmentObject(follows)
                 .environmentObject(settings)
+                .environmentObject(downloads)
                 .preferredColorScheme(settings.theme.colorScheme)
                 .tint(settings.accent.color)
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)

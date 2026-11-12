@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import WebKit
 
 private struct SavedTab: Codable {
     let url: String?
@@ -26,6 +27,14 @@ private struct SavedSession: Codable {
         }
     }
 
+    var downloadHandler: ((WKDownload, URL?) -> Void)? {
+        didSet {
+            for tab in tabs {
+                tab.onDownload = downloadHandler
+            }
+        }
+    }
+
     var selected: BrowserTab? {
         tabs.first(where: { $0.id == selectedId })
     }
@@ -44,6 +53,7 @@ private struct SavedSession: Codable {
                     tab.pendingURL = url
                 }
                 tab.unsafeCheck = unsafeCheck
+                tab.onDownload = downloadHandler
                 wireTab(tab)
                 restoredTabs.append(tab)
             }
@@ -68,6 +78,7 @@ private struct SavedSession: Codable {
     func newTab(url: URL? = nil, isPrivate: Bool = false, select: Bool = true) -> BrowserTab {
         let tab = BrowserTab(isPrivate: isPrivate)
         tab.unsafeCheck = unsafeCheck
+        tab.onDownload = downloadHandler
         wireTab(tab)
         if let url = url {
             tab.load(url)

@@ -37,10 +37,12 @@ struct BlockedNavigation: Identifiable, Equatable {
     }
     @Published var adBlockActive: Bool = false
     @Published var blockedNavigation: BlockedNavigation? = nil
+    @Published var lastDownloadStartedAt: Date? = nil
 
     var pendingURL: URL? = nil
     var popupFilter: (WKNavigationAction) -> Bool = { _ in true }
     var onOpenInNewTab: ((URL) -> Void)?
+    var onDownload: ((WKDownload, URL?) -> Void)?
     var unsafeCheck: (@MainActor (URL) -> String?)?
 
     private var allowedUnsafeHosts: Set<String> = []
@@ -214,6 +216,48 @@ struct BlockedNavigation: Identifiable, Equatable {
             UIApplication.shared.open(url)
             decisionHandler(.cancel)
         }
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationResponse: WKNavigationResponse,
+        decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+    ) {
+        if !navigationResponse.canShowMIMEType {
+            decisionHandler(.download)
+            return
+        }
+        if let http = navigationResponse.response as? HTTPURLResponse {
+            let disposition = http.allHeaderFields.first { key, _ in
+                (key as? String)?.caseInsensitiveCompare("Content-Disposition") == .orderedSame
+            }?.value as? String
+            if let disposition = disposition?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+               disposition.hasPrefix("attachment") {
+                decisionHandler(.download)
+                return
+            }
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        navigationResponse: WKNavigationResponse,
+        didBecome download: WKDownload
+    ) {
+        lastDownloadStartedAt = Date()
+        let sourceURL = download.originalRequest?.url ?? webView.url
+        onDownload?(download, sourceURL)
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        navigationAction: WKNavigationAction,
+        didBecome download: WKDownload
+    ) {
+        lastDownloadStartedAt = Date()
+        let sourceURL = download.originalRequest?.url ?? webView.url
+        onDownload?(download, sourceURL)
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
