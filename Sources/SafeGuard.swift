@@ -469,7 +469,7 @@ final class SafeGuard: @unchecked Sendable {
 
         let pathMatches: Bool
         if listedPath.isEmpty || listedPath == "/" {
-            pathMatches = !sharedHost || currentPath.isEmpty() || currentPath == "/"
+            pathMatches = !sharedHost || currentPath.isEmpty || currentPath == "/"
         } else {
             pathMatches = currentPath == listedPath || currentPath.hasPrefix("\(listedPath)/")
         }
