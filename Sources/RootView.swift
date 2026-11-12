@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var hub: BrowserHub
+    @EnvironmentObject var tabs: TabManager
     @State private var selectedTab: Int
 
     init() {
@@ -62,6 +63,15 @@ struct RootView: View {
             if let launchUrlString = UserDefaults.standard.string(forKey: "url"),
                let target = SafariTarget(urlString: launchUrlString) {
                 hub.open(target.url)
+            }
+        }
+        .task {
+            _ = await AdBlocker.shared.compileAll()
+        }
+        .task(id: store.entries.count) {
+            tabs.unsafeCheck = { url in
+                let v = store.safeGuard?.check(url.absoluteString)
+                return v?.status == .unsafe ? (v?.reason ?? "On the FMHY unsafe list") : nil
             }
         }
     }

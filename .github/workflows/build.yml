@@ -47,6 +47,7 @@ jobs:
           shot screenshot.png
           shot screenshot-search.png -tab 1 -query stremo
           shot screenshot-check.png -tab 3
+          shot screenshot-browser.png -tab 4 -url https://fmhy.net
 
       - name: Unsigned device build
         run: |

@@ -5,6 +5,7 @@ struct BrowserView: View {
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var bookmarks: Bookmarks
     @EnvironmentObject var hub: BrowserHub
+    @ObservedObject private var adBlocker = AdBlocker.shared
 
     @FocusState private var isAddressFocused: Bool
     @State private var addressText: String = ""
@@ -12,6 +13,14 @@ struct BrowserView: View {
     @State private var cachedVerdict: Verdict?
     @State private var showSafetySheet = false
     @State private var showTabSwitcher = false
+
+    private var currentHost: String? {
+        guard let host = tabs.selected?.url?.host, !host.isEmpty else {
+            return nil
+        }
+        let lower = host.lowercased()
+        return lower.hasPrefix("www.") ? String(lower.dropFirst(4)) : lower
+    }
 
     private var badgeSymbolName: String {
         guard let verdict = cachedVerdict else { return "questionmark.circle" }
@@ -95,6 +104,28 @@ struct BrowserView: View {
         .sheet(isPresented: $showTabSwitcher) {
             TabSwitcherSheet()
         }
+        .alert(
+            "Blocked unsafe site",
+            isPresented: Binding(
+                get: { tabs.selected?.blockedNavigation != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        tabs.selected?.dismissBlocked()
+                    }
+                }
+            ),
+            presenting: tabs.selected?.blockedNavigation
+        ) { blocked in
+            Button("Go back", role: .cancel) {
+                tabs.selected?.dismissBlocked()
+            }
+            Button("Open anyway") {
+                tabs.selected?.proceedAnyway(blocked)
+            }
+        } message: { blocked in
+            let host = blocked.url.host ?? blocked.url.absoluteString
+            Text("\(blocked.reason)\n\n\(host)")
+        }
     }
 
     private var topBar: some View {
@@ -160,6 +191,34 @@ struct BrowserView: View {
         .padding(.vertical, 8)
     }
 
+    private var shieldMenu: some View {
+        Menu {
+            Toggle("Ad blocking everywhere", isOn: $adBlocker.isEnabled)
+
+            if let tab = tabs.selected, let host = currentHost {
+                Button {
+                    tab.toggleAdBlockForCurrentSite()
+                } label: {
+                    let isBlocking = tab.adBlockActive
+                    Label(
+                        isBlocking ? "Turn blocking off for \(host)" : "Turn blocking on for \(host)",
+                        systemImage: isBlocking ? "shield.slash" : "shield.checkerboard"
+                    )
+                }
+            } else {
+                Button {} label: {
+                    Label("Turn blocking on/off for site", systemImage: "shield")
+                }
+                .disabled(true)
+            }
+        } label: {
+            let isBlocking = tabs.selected?.adBlockActive ?? adBlocker.isEnabled
+            Image(systemName: isBlocking ? "shield.checkerboard" : "shield.slash")
+                .font(.system(size: 18, weight: .medium))
+        }
+        .accessibilityLabel("Ad blocking")
+    }
+
     private var bottomToolbar: some View {
         HStack {
             Button {
@@ -196,6 +255,10 @@ struct BrowserView: View {
                     .foregroundStyle(.tertiary)
                     .accessibilityLabel("Share")
             }
+
+            Spacer()
+
+            shieldMenu
 
             Spacer()
 

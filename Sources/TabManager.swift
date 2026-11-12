@@ -18,6 +18,14 @@ private struct SavedSession: Codable {
     @Published var tabs: [BrowserTab] = []
     @Published var selectedId: UUID? = nil
 
+    var unsafeCheck: (@MainActor (URL) -> String?)? {
+        didSet {
+            for tab in tabs {
+                tab.unsafeCheck = unsafeCheck
+            }
+        }
+    }
+
     var selected: BrowserTab? {
         tabs.first(where: { $0.id == selectedId })
     }
@@ -35,6 +43,7 @@ private struct SavedSession: Codable {
                     tab.url = url
                     tab.pendingURL = url
                 }
+                tab.unsafeCheck = unsafeCheck
                 wireTab(tab)
                 restoredTabs.append(tab)
             }
@@ -58,6 +67,7 @@ private struct SavedSession: Codable {
     @discardableResult
     func newTab(url: URL? = nil, isPrivate: Bool = false, select: Bool = true) -> BrowserTab {
         let tab = BrowserTab(isPrivate: isPrivate)
+        tab.unsafeCheck = unsafeCheck
         wireTab(tab)
         if let url = url {
             tab.load(url)
@@ -143,6 +153,10 @@ private struct SavedSession: Codable {
 
         tab.$title.dropFirst().sink { [weak self] _ in
             self?.save()
+        }.store(in: &cancellables)
+
+        tab.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
         }.store(in: &cancellables)
 
         tabCancellables[tab.id] = cancellables
