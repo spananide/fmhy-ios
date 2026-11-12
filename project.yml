@@ -16,6 +16,8 @@ targets:
       properties:
         BGTaskSchedulerPermittedIdentifiers: [de.spanani.fmhy.refresh]
         UIBackgroundModes: [fetch]
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.spanani.fmhy
