@@ -1,9 +1,10 @@
-**What's new in 1.1.0**
-- Built-in browser with tabs, private tabs and an "is this site on FMHY?" badge
-- Ad blocking (~119,000 rules), cookie-banner hiding, popup limiting, per-site switch
-- Warning page before opening sites on the FMHY unsafe list
-- Site counts: total and per category on the Wiki tab
-- Links from the wiki now open in the built-in browser (a setting to use Safari instead is stored as `openInSafari`)
+**What's new in 1.2.0**
+- **What's new feed:** added / removed / starred / moved sites of the last 120 days, filters, "NEW" badges on rows
+- **Follow categories** (bell in a category) with local notifications for new sites
+- **Settings:** theme (light, dark, pure black), accent colour, text size, search engine, open links in-app or Safari, ad-block allowlist, Wi-Fi-only refresh
+- **Backup & restore** of bookmarks, followed categories and settings
+- **Welcome screen** on first launch, About page with credits and privacy
+- Wiki tab now has the same order and groups as fmhy.net, with emoji icons
 
 **Install:** download the `.ipa` below and sideload it with [Sideloadly](https://sideloadly.io), SideStore/AltStore, or on Linux with Sideloader/iloader. Details in the [README](https://github.com/spananide/fmhy-ios#install-free-no-mac-needed).
 

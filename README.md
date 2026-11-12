@@ -10,7 +10,7 @@ iOS 17+ · Free & open source · No ads · No tracking · No accounts
 
 [**⬇️ Download the latest .ipa**](https://github.com/spananide/fmhy-ios/releases/latest) · [🐞 Send feedback](https://github.com/spananide/fmhy-ios/issues/new/choose)
 
-<img src="docs/home.png" width="200" alt="Wiki"> <img src="docs/search.png" width="200" alt="Search"> <img src="docs/check.png" width="200" alt="Link check"> <img src="docs/browser.png" width="200" alt="Browser">
+<img src="docs/home.png" width="200" alt="Wiki"> <img src="docs/search.png" width="200" alt="Search"> <img src="docs/check.png" width="200" alt="Link check"> <img src="docs/browser.png" width="200" alt="Browser"> <img src="docs/whatsnew.png" width="200" alt="What's new">
 
 </div>
 
@@ -24,10 +24,12 @@ The official iOS port of [FMHY for Android](https://github.com/omeg4-dev/fmhy-an
 - 🛡️ **Check:** paste a link to see if it is on FMHY, starred, on the unsafe list, or a clone (uses the [FMHY SafeGuard](https://github.com/fmhy/FMHY-SafeGuard) lists).
 - 🌐 **Built-in browser:** tabs, private tabs, address/search bar, desktop-site toggle, a badge that tells you if the current site is on FMHY, and a warning page before FMHY-listed unsafe sites.
 - 🚫 **Ad blocking:** ~119,000 rules (EasyList, EasyPrivacy, Peter Lowe's list, FMHY filterlist), cookie-banner hiding and popup limiting, switchable per site.
-- 📊 Site counts: the total and per category on the Wiki tab.
+- 📊 Site counts, in the same order and groups as fmhy.net (Wiki, Tools, More).
+- 🔔 **What's new:** added, removed, starred and moved sites from the last 120 days (feed by omeg4-dev), "NEW" badges, and follow categories to get a notification when new sites arrive (iOS may delay background checks).
+- ⚙️ **Settings:** light/dark/pure-black theme, accent colour, text size, search engine, open links in-app or Safari, ad-block allowlist, Wi-Fi-only refresh, backup and restore of bookmarks and follows.
 - 🔒 No analytics, no servers of mine in between.
 
-Coming next: What's new feed, settings and themes, downloads, VirusTotal check. Not planned: Android-only features (Material You, shortcuts).
+Coming next: download manager and VirusTotal check (with your own key). Not planned: Android-only features (Material You, shortcuts).
 
 ## Install (free, no Mac needed)
 The app is not on the App Store, so you sideload the `.ipa` from [Releases](https://github.com/spananide/fmhy-ios/releases/latest).
