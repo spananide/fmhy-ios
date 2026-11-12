@@ -8,18 +8,7 @@ struct EntryRow: View {
     @State private var safariTarget: SafariTarget?
 
     private var subtitle: String {
-        var parts: [String] = []
-        let desc = entry.description.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !desc.isEmpty {
-            parts.append(desc)
-        }
-        for tag in entry.tags {
-            let t = tag.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !t.isEmpty {
-                parts.append(t)
-            }
-        }
-        return parts.joined(separator: " · ")
+        entry.description.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var body: some View {
