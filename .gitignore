@@ -1,0 +1,9 @@
+FMHY.xcodeproj/
+build/
+build-device/
+Payload/
+*.ipa
+screenshot.png
+.DS_Store
+xcuserdata/
+ref/

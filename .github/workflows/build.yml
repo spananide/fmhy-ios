@@ -1,0 +1,49 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch fresh wiki data
+        run: bash tools/fetch-data.sh
+
+      - name: Install XcodeGen and generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Unit tests
+        run: xcodebuild -project FMHY.xcodeproj -scheme FMHY -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO test
+
+      - name: Simulator build
+        run: xcodebuild -project FMHY.xcodeproj -scheme FMHY -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+
+      - name: Screenshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          UDID=$(xcrun simctl list devices available | grep -m1 iPhone | grep -oE '[0-9A-F-]{36}')
+          xcrun simctl boot $UDID
+          xcrun simctl install $UDID build/Build/Products/Debug-iphonesimulator/FMHY.app
+          xcrun simctl launch $UDID de.spanani.fmhy
+          sleep 8
+          xcrun simctl io $UDID screenshot screenshot.png
+
+      - name: Unsigned device build
+        run: |
+          xcodebuild -project FMHY.xcodeproj -scheme FMHY -sdk iphoneos -configuration Release -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO build
+          mkdir Payload && cp -R build-device/Build/Products/Release-iphoneos/FMHY.app Payload/ && zip -r FMHY.ipa Payload
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: |
+            screenshot.png
+            FMHY.ipa
