@@ -1,0 +1,7 @@
+name: Feedback or idea
+description: Suggest a feature or tell me what you think
+labels: [feedback]
+body:
+  - type: textarea
+    attributes: {label: Your feedback}
+    validations: {required: true}

@@ -49,6 +49,7 @@ struct HomeView: View {
                         }
                         Text(footerText)
                             .foregroundStyle(.secondary)
+                        Text("[Send feedback](https://github.com/spananide/fmhy-ios/issues/new/choose)")
                     }
                     .font(.footnote)
                     .frame(maxWidth: .infinity, alignment: .center)
