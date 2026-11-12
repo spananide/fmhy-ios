@@ -597,7 +597,7 @@ final class DownloadManager: NSObject, ObservableObject {
         save()
     }
 
-    static func computeSHA256(for fileURL: URL) throws -> String {
+    nonisolated static func computeSHA256(for fileURL: URL) throws -> String {
         let fileHandle = try FileHandle(forReadingFrom: fileURL)
         defer { try? fileHandle.close() }
 
@@ -612,13 +612,13 @@ final class DownloadManager: NSObject, ObservableObject {
 
     // MARK: - Utility Functions
 
-    static func isRisky(fileName: String) -> Bool {
+    nonisolated static func isRisky(fileName: String) -> Bool {
         let ext = (fileName as NSString).pathExtension.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !ext.isEmpty else { return false }
         return riskyExtensions.contains(ext)
     }
 
-    static func sanitizedFileName(_ name: String) -> String {
+    nonisolated static func sanitizedFileName(_ name: String) -> String {
         var sanitized = ""
         for ch in name {
             if ch == "/" || ch == "\\" || ch == ":" {
@@ -650,7 +650,7 @@ final class DownloadManager: NSObject, ObservableObject {
         return sanitized
     }
 
-    static func uniqueFileName(_ name: String, existing: Set<String>) -> String {
+    nonisolated static func uniqueFileName(_ name: String, existing: Set<String>) -> String {
         if !existing.contains(name) {
             return name
         }
