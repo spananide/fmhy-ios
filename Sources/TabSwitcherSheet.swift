@@ -106,7 +106,7 @@ struct TabSwitcherSheet: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
 
-                    Text(tab.url?.hostOnly ?? "Blank page")
+                    Text(tab.url?.absoluteString.hostOnly ?? "Blank page")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
