@@ -8,7 +8,7 @@ final class DownloadChecks: ObservableObject {
     let prefs: CheckPrefs
     let store: ScanStore
 
-    init(prefs: CheckPrefs, store: ScanStore = ScanStore()) {
+    init(prefs: CheckPrefs, store: ScanStore) {
         self.prefs = prefs
         self.store = store
 

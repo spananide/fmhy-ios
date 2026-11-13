@@ -63,7 +63,7 @@ public enum CheckPolicy {
         return AfterDownload(hold: hold, checkNow: checkNow, keyPrompt: keyPrompt)
     }
 
-    public nonisolated static func restoredState(_ s: DownloadState) -> DownloadState {
+    nonisolated static func restoredState(_ s: DownloadState) -> DownloadState {
         switch s {
         case .downloading:
             return .queued
@@ -74,11 +74,11 @@ public enum CheckPolicy {
         }
     }
 
-    public nonisolated static func needsExtraConfirm(_ r: ScanResult?) -> Bool {
+    nonisolated static func needsExtraConfirm(_ r: ScanResult?) -> Bool {
         r?.verdict == .dangerous
     }
 
-    public nonisolated static func needsExtraConfirm(_ item: DownloadItem) -> Bool {
+    nonisolated static func needsExtraConfirm(_ item: DownloadItem) -> Bool {
         needsExtraConfirm(item.check)
     }
 }
