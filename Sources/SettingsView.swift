@@ -12,6 +12,7 @@ struct SettingsView: View {
     @EnvironmentObject var follows: Follows
     @EnvironmentObject var downloads: DownloadManager
     @EnvironmentObject var checkPrefs: CheckPrefs
+    @EnvironmentObject var vtSiteChecks: VtSiteChecks
 
     @ObservedObject private var adBlocker = AdBlocker.shared
 
@@ -25,6 +26,7 @@ struct SettingsView: View {
     @State private var showDownloadsSheet = false
     @State private var editingKeyService: ScanService?
     @State private var keyInput: String = ""
+    @State private var showForgetSitesConfirm = false
 
     private var appVersionString: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -141,6 +143,18 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(backupAlertMessage)
+            }
+            .confirmationDialog(
+                "Forget checked sites?",
+                isPresented: $showForgetSitesConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Forget checked sites", role: .destructive) {
+                    vtSiteChecks.forgetAll()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This removes all remembered clean site marks from VirusTotal.")
             }
         }
     }
@@ -361,6 +375,12 @@ struct SettingsView: View {
 
             Toggle("Auto-check risky files", isOn: $checkPrefs.autoRisky)
                 .fmhyRowBackground()
+
+            Button("Forget checked sites", role: .destructive) {
+                showForgetSitesConfirm = true
+            }
+            .disabled(!vtSiteChecks.hasMarks)
+            .fmhyRowBackground()
         } header: {
             Text("File and link checks")
         } footer: {

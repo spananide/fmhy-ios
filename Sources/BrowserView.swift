@@ -102,8 +102,12 @@ struct BrowserView: View {
             }
         }
         .sheet(isPresented: $showSafetySheet) {
-            SafetyInfoSheet(verdict: cachedVerdict, host: cachedHost)
-                .presentationDetents([.height(260)])
+            SafetyInfoSheet(
+                verdict: cachedVerdict,
+                host: cachedHost,
+                isPrivate: tabs.selected?.isPrivate ?? false
+            )
+            .presentationDetents([.height(380), .large])
         }
         .sheet(isPresented: $showTabSwitcher) {
             TabSwitcherSheet()
@@ -427,6 +431,7 @@ struct BrowserView: View {
 private struct SafetyInfoSheet: View {
     let verdict: Verdict?
     let host: String?
+    let isPrivate: Bool
     @Environment(\.dismiss) private var dismiss
 
     private var title: String {
@@ -506,6 +511,12 @@ private struct SafetyInfoSheet: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
                     .lineLimit(3)
+            }
+
+            if let host = host, !host.isEmpty {
+                SiteCheckSection(host: host, verdict: verdict, isPrivate: isPrivate)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
             }
 
             Spacer(minLength: 0)

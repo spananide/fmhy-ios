@@ -13,6 +13,7 @@ struct FMHYApp: App {
     @StateObject private var checkPrefs: CheckPrefs
     @StateObject private var scanStore: ScanStore
     @StateObject private var downloadChecks: DownloadChecks
+    @StateObject private var vtSiteChecks: VtSiteChecks
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -25,6 +26,7 @@ struct FMHYApp: App {
         let scanStore = ScanStore()
         let downloadChecks = DownloadChecks(prefs: checkPrefs, store: scanStore)
         let downloadManager = DownloadManager()
+        let vtSiteChecks = VtSiteChecks()
         downloadManager.checks = downloadChecks
 
         tabManager.downloadHandler = { download, url in
@@ -39,6 +41,7 @@ struct FMHYApp: App {
         _checkPrefs = StateObject(wrappedValue: checkPrefs)
         _scanStore = StateObject(wrappedValue: scanStore)
         _downloadChecks = StateObject(wrappedValue: downloadChecks)
+        _vtSiteChecks = StateObject(wrappedValue: vtSiteChecks)
         _downloads = StateObject(wrappedValue: downloadManager)
 
         Notifier.configure(changes: changesStore, follows: followsStore, store: wikiStore)
@@ -59,6 +62,7 @@ struct FMHYApp: App {
                 .environmentObject(checkPrefs)
                 .environmentObject(scanStore)
                 .environmentObject(downloadChecks)
+                .environmentObject(vtSiteChecks)
                 .preferredColorScheme(settings.theme.colorScheme)
                 .tint(settings.accent.color)
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)
