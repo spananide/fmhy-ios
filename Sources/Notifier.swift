@@ -143,4 +143,29 @@ enum Notifier {
             refreshTask.cancel()
         }
     }
+
+    // MARK: - Scan Notifications
+
+    static func postScanFinished(title: String, body: String) {
+        Task {
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+                return
+            }
+
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+
+            let request = UNNotificationRequest(
+                identifier: "fmhy-scan-\(UUID().uuidString)",
+                content: content,
+                trigger: nil
+            )
+
+            try? await center.add(request)
+        }
+    }
 }
