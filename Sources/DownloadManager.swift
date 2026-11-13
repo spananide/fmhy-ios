@@ -10,6 +10,8 @@ enum DownloadState: String, Codable, Sendable {
     case completed
     case failed
     case cancelled
+    case checking
+    case awaitingDecision
 }
 
 struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
@@ -23,6 +25,7 @@ struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
     var startedAt: Date
     var errorMessage: String?
     var sha256: String?
+    var check: ScanResult?
     var vt: VTResult?
     var isRisky: Bool
     var riskyConfirmed: Bool
@@ -38,6 +41,7 @@ struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
         startedAt: Date = Date(),
         errorMessage: String? = nil,
         sha256: String? = nil,
+        check: ScanResult? = nil,
         vt: VTResult? = nil,
         isRisky: Bool = false,
         riskyConfirmed: Bool = false
@@ -52,6 +56,7 @@ struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
         self.startedAt = startedAt
         self.errorMessage = errorMessage
         self.sha256 = sha256
+        self.check = check
         self.vt = vt
         self.isRisky = isRisky
         self.riskyConfirmed = riskyConfirmed
@@ -61,9 +66,12 @@ struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
 @MainActor
 final class DownloadManager: NSObject, ObservableObject {
     @Published private(set) var items: [DownloadItem] = []
+    @Published var keyPromptItem: UUID?
+
+    var checks: DownloadChecks?
 
     var activeCount: Int {
-        items.filter { $0.state == .downloading || $0.state == .queued }.count
+        items.filter { $0.state == .downloading || $0.state == .queued || $0.state == .checking }.count
     }
 
     private var activeWebDownloads: [UUID: WKDownload] = [:]
@@ -121,6 +129,7 @@ final class DownloadManager: NSObject, ObservableObject {
         }
 
         for i in 0..<loadedItems.count {
+            loadedItems[i].state = CheckPolicy.restoredState(loadedItems[i].state)
             if loadedItems[i].state == .downloading || loadedItems[i].state == .queued {
                 if hasResumeData(for: loadedItems[i].id) {
                     loadedItems[i].state = .paused
@@ -210,43 +219,173 @@ final class DownloadManager: NSObject, ObservableObject {
         save()
     }
 
+    func keepAfterCheck(_ id: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        if items[idx].state == .awaitingDecision {
+            items[idx].state = .completed
+            save()
+        }
+    }
+
+    func checkItem(_ id: UUID, services: [ScanService]) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        let wasAwaiting = (items[idx].state == .awaitingDecision)
+        items[idx].state = .checking
+        save()
+        Task { [weak self] in
+            await self?.performCheckAndTransition(
+                for: id,
+                services: services,
+                targetState: wasAwaiting ? .awaitingDecision : .completed
+            )
+        }
+    }
+
+    func uploadItem(_ id: UUID, service: ScanService) {
+        guard let item = items.first(where: { $0.id == id }),
+              let fileURL = fileURL(for: item),
+              FileManager.default.fileExists(atPath: fileURL.path),
+              let checks = checks else {
+            return
+        }
+
+        Task { [weak self] in
+            var sha = item.sha256
+            if sha == nil {
+                sha = try? await checks.fingerprint(fileURL: fileURL)
+                if let sha = sha {
+                    await MainActor.run {
+                        self?.updateSHA256(sha, for: id)
+                    }
+                }
+            }
+            guard let sha256 = sha else { return }
+
+            let updated = await checks.upload(fileURL: fileURL, sha256: sha256, service: service, previous: item.check)
+            await MainActor.run { [weak self] in
+                guard let self = self, let idx = self.items.firstIndex(where: { $0.id == id }) else { return }
+                self.items[idx].check = updated
+                self.save()
+            }
+        }
+    }
+
     func checkVirusTotal(_ id: UUID) async {
-        guard let item = items.first(where: { $0.id == id }) else { return }
-        guard let fileURL = fileURL(for: item), FileManager.default.fileExists(atPath: fileURL.path) else {
-            setErrorMessage("File not found on disk", for: id)
+        await performCheckAndTransition(for: id, services: [.virusTotal], targetState: nil)
+    }
+
+    private func performCheckAndTransition(
+        for id: UUID,
+        services: [ScanService],
+        targetState: DownloadState?
+    ) async {
+        guard let item = items.first(where: { $0.id == id }),
+              let fileURL = fileURL(for: item),
+              FileManager.default.fileExists(atPath: fileURL.path) else {
+            if let targetState = targetState, let idx = items.firstIndex(where: { $0.id == id }) {
+                items[idx].state = targetState
+                save()
+            }
             return
         }
 
         var sha = item.sha256
         if sha == nil {
             do {
-                sha = try await Task.detached(priority: .userInitiated) {
-                    try Self.computeSHA256(for: fileURL)
-                }.value
+                sha = try await checks?.fingerprint(fileURL: fileURL)
+                    ?? (try await Task.detached(priority: .userInitiated) {
+                        try Self.computeSHA256(for: fileURL)
+                    }.value)
                 if let sha = sha {
                     updateSHA256(sha, for: id)
                 }
             } catch {
                 setErrorMessage("Failed to hash file: \(error.localizedDescription)", for: id)
+                if let targetState = targetState, let idx = items.firstIndex(where: { $0.id == id }) {
+                    items[idx].state = targetState
+                    save()
+                }
                 return
             }
         }
 
-        guard let sha256 = sha else { return }
-        guard let apiKey = KeychainStore.get("vt.apiKey"), !apiKey.isEmpty else {
-            setErrorMessage("VirusTotal API key not configured", for: id)
+        guard let sha256 = sha else {
+            if let targetState = targetState, let idx = items.firstIndex(where: { $0.id == id }) {
+                items[idx].state = targetState
+                save()
+            }
             return
         }
 
-        do {
-            let result = try await VirusTotal.lookup(sha256: sha256, apiKey: apiKey)
-            setVT(result, for: id)
+        if let checks = checks {
+            let scanResult = await checks.checkFile(sha256: sha256, services: services)
             if let idx = items.firstIndex(where: { $0.id == id }) {
+                items[idx].check = scanResult
                 items[idx].errorMessage = nil
+                if let targetState = targetState {
+                    items[idx].state = targetState
+                }
                 save()
             }
-        } catch {
-            setErrorMessage(error.localizedDescription, for: id)
+            checks.store.set(scanResult, for: sha256)
+        } else {
+            if let targetState = targetState, let idx = items.firstIndex(where: { $0.id == id }) {
+                items[idx].state = targetState
+                save()
+            }
+        }
+    }
+
+    private func runAfterDownloadPolicy(for itemId: UUID) {
+        guard let idx = items.firstIndex(where: { $0.id == itemId }) else { return }
+        let fileName = items[idx].fileName
+        let readyServices = checks?.prefs.readyServices ?? []
+        let holdPref = checks?.prefs.hold ?? false
+        let autoRiskyPref = checks?.prefs.autoRisky ?? true
+        let keyPromptShown = checks?.prefs.keyPromptShown ?? false
+
+        let decision = CheckPolicy.afterDownload(
+            fileName: fileName,
+            readyCount: readyServices.count,
+            hold: holdPref,
+            autoCheckRisky: autoRiskyPref,
+            keyPromptShown: keyPromptShown
+        )
+
+        if decision.keyPrompt {
+            keyPromptItem = itemId
+        }
+
+        if decision.hold {
+            items[idx].state = .checking
+            save()
+            if decision.checkNow {
+                Task { [weak self] in
+                    await self?.performCheckAndTransition(
+                        for: itemId,
+                        services: readyServices,
+                        targetState: .awaitingDecision
+                    )
+                }
+            } else {
+                items[idx].state = .awaitingDecision
+                save()
+                startBackgroundHash(for: itemId)
+            }
+        } else {
+            items[idx].state = .completed
+            save()
+            if decision.checkNow {
+                Task { [weak self] in
+                    await self?.performCheckAndTransition(
+                        for: itemId,
+                        services: readyServices,
+                        targetState: nil
+                    )
+                }
+            } else {
+                startBackgroundHash(for: itemId)
+            }
         }
     }
 
@@ -320,7 +459,6 @@ final class DownloadManager: NSObject, ObservableObject {
 
     func handleDownloadDidFinish(for itemId: UUID) {
         guard let idx = items.firstIndex(where: { $0.id == itemId }) else { return }
-        items[idx].state = .completed
 
         if let url = fileURL(for: items[idx]),
            let attr = try? FileManager.default.attributesOfItem(atPath: url.path),
@@ -332,13 +470,12 @@ final class DownloadManager: NSObject, ObservableObject {
         }
 
         items[idx].isRisky = Self.isRisky(fileName: items[idx].fileName)
-        save()
 
         activeWebDownloads.removeValue(forKey: itemId)
         webDelegates.removeValue(forKey: itemId)
         removeResumeData(for: itemId)
 
-        startBackgroundHash(for: itemId)
+        runAfterDownloadPolicy(for: itemId)
     }
 
     func handleDownloadDidFail(for itemId: UUID, error: Error, resumeData: Data?) {
@@ -522,17 +659,15 @@ final class DownloadManager: NSObject, ObservableObject {
 
         items[idx].fileName = fileName
         items[idx].relativePath = relPath
-        items[idx].state = .completed
         items[idx].bytesReceived = fileSize
         items[idx].bytesTotal = fileSize
         items[idx].isRisky = Self.isRisky(fileName: fileName)
-        save()
 
         activeTasks.removeValue(forKey: itemId)
         taskToItemId.removeValue(forKey: taskId)
         removeResumeData(for: itemId)
 
-        startBackgroundHash(for: itemId)
+        runAfterDownloadPolicy(for: itemId)
     }
 
     func handleURLTaskProgress(taskId: Int, received: Int64, total: Int64) {

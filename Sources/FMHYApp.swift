@@ -10,6 +10,9 @@ struct FMHYApp: App {
     @StateObject private var follows: Follows
     @StateObject private var settings = AppSettings()
     @StateObject private var downloads: DownloadManager
+    @StateObject private var checkPrefs: CheckPrefs
+    @StateObject private var scanStore: ScanStore
+    @StateObject private var downloadChecks: DownloadChecks
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -18,7 +21,11 @@ struct FMHYApp: App {
         let wikiStore = WikiStore()
         let changesStore = ChangesStore()
         let followsStore = Follows()
+        let checkPrefs = CheckPrefs()
+        let scanStore = ScanStore()
+        let downloadChecks = DownloadChecks(prefs: checkPrefs, store: scanStore)
         let downloadManager = DownloadManager()
+        downloadManager.checks = downloadChecks
 
         tabManager.downloadHandler = { download, url in
             downloadManager.adopt(download, suggestedFilename: nil, sourceURL: url)
@@ -29,6 +36,9 @@ struct FMHYApp: App {
         _store = StateObject(wrappedValue: wikiStore)
         _changes = StateObject(wrappedValue: changesStore)
         _follows = StateObject(wrappedValue: followsStore)
+        _checkPrefs = StateObject(wrappedValue: checkPrefs)
+        _scanStore = StateObject(wrappedValue: scanStore)
+        _downloadChecks = StateObject(wrappedValue: downloadChecks)
         _downloads = StateObject(wrappedValue: downloadManager)
 
         Notifier.configure(changes: changesStore, follows: followsStore, store: wikiStore)
@@ -46,6 +56,9 @@ struct FMHYApp: App {
                 .environmentObject(follows)
                 .environmentObject(settings)
                 .environmentObject(downloads)
+                .environmentObject(checkPrefs)
+                .environmentObject(scanStore)
+                .environmentObject(downloadChecks)
                 .preferredColorScheme(settings.theme.colorScheme)
                 .tint(settings.accent.color)
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)

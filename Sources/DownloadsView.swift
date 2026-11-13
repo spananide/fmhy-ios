@@ -1,17 +1,34 @@
 import SwiftUI
 import QuickLook
 import UIKit
+import UniformTypeIdentifiers
 
 struct DownloadsView: View {
     @EnvironmentObject var downloads: DownloadManager
+    @EnvironmentObject var checks: DownloadChecks
+    @EnvironmentObject var checkPrefs: CheckPrefs
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @AppStorage("downloads.warnRisky") private var warnRiskyFiles: Bool = true
 
-    @State private var showAddURLAlert = false
-    @State private var newURLInput = ""
-    @State private var activeSheet: ActiveSheet?
+    @State private var showDownloadOffer = false
+    @State private var showFileImporter = false
+    @State private var fileImporterProgress = false
+    @State private var showingScanResult: ScanResult?
+    @State private var pendingUpload: PendingUploadTarget?
+    @State private var pendingUploadTooBigService: ScanService?
+    @State private var pendingCheckChooserItem: DownloadItem?
+    @State private var pendingDangerousKeepItem: DownloadItem?
+    @State private var pendingDangerousOpenItem: DownloadItem?
+    @State private var showSetUpChecksDialog = false
     @State private var itemToConfirm: DownloadItem?
     @State private var showRiskyAlert = false
+    @State private var activeSheet: ActiveSheet?
+
+    private struct PendingUploadTarget {
+        let item: DownloadItem
+        let service: ScanService
+    }
 
     private enum ActiveSheet: Identifiable {
         case quickLook(URL)
@@ -49,37 +66,91 @@ struct DownloadsView: View {
                 }
 
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            showDownloadOffer = true
+                        } label: {
+                            Label("Add download URL…", systemImage: "plus")
+                        }
+
+                        Button {
+                            showFileImporter = true
+                        } label: {
+                            Label("Check a file…", systemImage: "shield.checkerboard")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            downloads.clearFinished()
+                        } label: {
+                            Label("Clear finished", systemImage: "trash")
+                        }
+                        .disabled(!downloads.items.contains {
+                            $0.state == .completed || $0.state == .failed || $0.state == .cancelled
+                        })
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+
                     Button {
-                        newURLInput = ""
-                        showAddURLAlert = true
+                        showDownloadOffer = true
                     } label: {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("Add URL")
-
-                    Button("Clear finished") {
-                        downloads.clearFinished()
-                    }
-                    .disabled(!downloads.items.contains {
-                        $0.state == .completed || $0.state == .failed || $0.state == .cancelled
-                    })
                 }
             }
-            .alert("Add download URL", isPresented: $showAddURLAlert) {
-                TextField("https://example.com/file.zip", text: $newURLInput)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("Download") {
-                    let trimmed = newURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let url = URL(string: trimmed),
-                       let scheme = url.scheme?.lowercased(),
-                       scheme == "http" || scheme == "https" {
-                        downloads.start(url: url)
+            .overlay {
+                if fileImporterProgress {
+                    ZStack {
+                        Color.black.opacity(0.3).ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.3)
+                            Text("Checking file…")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(24)
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Enter an HTTP or HTTPS link to start downloading.")
+            }
+            .sheet(isPresented: $showDownloadOffer) {
+                DownloadOfferSheet { url in
+                    downloads.start(url: url)
+                }
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.item],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let fileURL = urls.first else { return }
+                    handlePickedFile(fileURL)
+                case .failure:
+                    break
+                }
+            }
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .quickLook(let url):
+                    QuickLookPreviewView(url: url)
+                case .share(let url):
+                    ShareSheetView(activityItems: [url])
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { showingScanResult != nil },
+                set: { if !$0 { showingScanResult = nil } }
+            )) {
+                if let res = showingScanResult {
+                    ScanResultSheet(result: res, isLink: res.kind == .link)
+                }
             }
             .alert("Risky file", isPresented: $showRiskyAlert, presenting: itemToConfirm) { item in
                 Button("Open anyway") {
@@ -94,12 +165,128 @@ struct DownloadsView: View {
             } message: { _ in
                 Text("This file type can run code. Only open it if you trust the source.")
             }
-            .sheet(item: $activeSheet) { sheet in
-                switch sheet {
-                case .quickLook(let url):
-                    QuickLookPreviewView(url: url)
-                case .share(let url):
-                    ShareSheetView(activityItems: [url])
+            .alert(
+                "Open a dangerous file?",
+                isPresented: Binding(
+                    get: { pendingDangerousOpenItem != nil },
+                    set: { if !$0 { pendingDangerousOpenItem = nil } }
+                ),
+                presenting: pendingDangerousOpenItem
+            ) { item in
+                Button("Open anyway", role: .destructive) {
+                    if let fileURL = downloads.fileURL(for: item) {
+                        openFile(fileURL)
+                    }
+                    pendingDangerousOpenItem = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingDangerousOpenItem = nil
+                }
+            } message: { _ in
+                Text("This file was flagged as dangerous. Opening it can harm your phone.")
+            }
+            .alert(
+                "Keep a dangerous file?",
+                isPresented: Binding(
+                    get: { pendingDangerousKeepItem != nil },
+                    set: { if !$0 { pendingDangerousKeepItem = nil } }
+                ),
+                presenting: pendingDangerousKeepItem
+            ) { item in
+                Button("Keep anyway", role: .destructive) {
+                    downloads.keepAfterCheck(item.id)
+                    pendingDangerousKeepItem = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingDangerousKeepItem = nil
+                }
+            } message: { _ in
+                Text("This file was flagged as dangerous. It will be moved to your download folder.")
+            }
+            .alert(
+                "Upload for analysis?",
+                isPresented: Binding(
+                    get: { pendingUpload != nil },
+                    set: { if !$0 { pendingUpload = nil } }
+                ),
+                presenting: pendingUpload
+            ) { pair in
+                Button("Upload") {
+                    downloads.uploadItem(pair.item.id, service: pair.service)
+                    pendingUpload = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingUpload = nil
+                }
+            } message: { pair in
+                Text("\(pair.service.label) doesn't know this file yet. Uploading sends the whole file. Uploaded files may be shared with the service's security partners and researchers, so don't upload private files. New analyses can take a few minutes; you'll get a notification when it's done.")
+            }
+            .alert(
+                "File too big",
+                isPresented: Binding(
+                    get: { pendingUploadTooBigService != nil },
+                    set: { if !$0 { pendingUploadTooBigService = nil } }
+                ),
+                presenting: pendingUploadTooBigService
+            ) { service in
+                Button("Open website") {
+                    if let url = URL(string: ScanLinks.uploadPage(service: service)) {
+                        openURL(url)
+                    }
+                    pendingUploadTooBigService = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingUploadTooBigService = nil
+                }
+            } message: { service in
+                Text(ScanText.error(service: service, e: .tooBig))
+            }
+            .alert("Set up file checks", isPresented: $showSetUpChecksDialog) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Turn on VirusTotal or Hybrid Analysis and add a free key in settings to check files.")
+            }
+            .alert(
+                "Check risky files automatically?",
+                isPresented: Binding(
+                    get: { downloads.keyPromptItem != nil },
+                    set: { if !$0 { downloads.keyPromptItem = nil } }
+                )
+            ) {
+                Button("Set up a key") {
+                    checkPrefs.keyPromptShown = true
+                    downloads.keyPromptItem = nil
+                }
+                Button("Not now", role: .cancel) {
+                    checkPrefs.keyPromptShown = true
+                    downloads.keyPromptItem = nil
+                }
+            } message: {
+                Text("Automatic checks need a free VirusTotal or Hybrid Analysis key. Until you add one, nothing is sent.")
+            }
+            .confirmationDialog(
+                "Check with",
+                isPresented: Binding(
+                    get: { pendingCheckChooserItem != nil },
+                    set: { if !$0 { pendingCheckChooserItem = nil } }
+                ),
+                titleVisibility: .visible,
+                presenting: pendingCheckChooserItem
+            ) { item in
+                Button("VirusTotal") {
+                    downloads.checkItem(item.id, services: [.virusTotal])
+                    pendingCheckChooserItem = nil
+                }
+                Button("Hybrid Analysis") {
+                    downloads.checkItem(item.id, services: [.hybridAnalysis])
+                    pendingCheckChooserItem = nil
+                }
+                Button("Both") {
+                    downloads.checkItem(item.id, services: [.virusTotal, .hybridAnalysis])
+                    pendingCheckChooserItem = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingCheckChooserItem = nil
                 }
             }
         }
@@ -150,13 +337,84 @@ struct DownloadsView: View {
                         .foregroundStyle(.orange)
                     }
 
-                    if let vt = item.vt {
-                        HStack(spacing: 4) {
-                            Image(systemName: vt.malicious > 0 ? "xmark.shield.fill" : (vt.suspicious > 0 ? "exclamationmark.shield.fill" : "checkmark.shield.fill"))
-                            Text(vt.verdictText)
+                    if let check = item.check {
+                        let fileSize = item.bytesTotal > 0 ? item.bytesTotal : item.bytesReceived
+                        let chips = CheckChips.build(
+                            result: check,
+                            readyServices: checkPrefs.readyServices,
+                            fileSize: fileSize
+                        )
+                        CheckChipRow(chips: chips) { chip in
+                            handleChipTap(chip, for: item)
                         }
-                        .font(.caption2)
-                        .foregroundStyle(vt.malicious > 0 ? .red : (vt.suspicious > 0 ? .orange : .green))
+                        .padding(.top, 2)
+                    }
+
+                    if item.state == .awaitingDecision {
+                        let isDangerous = item.check?.verdict == .dangerous
+                        HStack(spacing: 8) {
+                            if isDangerous {
+                                Button(role: .destructive) {
+                                    downloads.delete(item)
+                                } label: {
+                                    Text("Delete")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.red)
+
+                                Button {
+                                    pendingDangerousKeepItem = item
+                                } label: {
+                                    Text("Keep")
+                                }
+                                .buttonStyle(.bordered)
+                            } else {
+                                Button {
+                                    downloads.keepAfterCheck(item.id)
+                                } label: {
+                                    Text("Keep")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(fmhyPurple)
+
+                                Button(role: .destructive) {
+                                    downloads.delete(item)
+                                } label: {
+                                    Text("Delete")
+                                }
+                                .buttonStyle(.bordered)
+                            }
+
+                            if item.check == nil {
+                                Button {
+                                    handleCheckFile(item)
+                                } label: {
+                                    Text("Check")
+                                }
+                                .buttonStyle(.bordered)
+                            } else if let unknownService = checkPrefs.readyServices.first(where: { ready in
+                                let sr = item.check?.services.first(where: { $0.service == ready })
+                                return sr?.verdict == .unknown && sr?.error == nil
+                            }) {
+                                Button {
+                                    pendingUpload = (item, unknownService)
+                                } label: {
+                                    Text("Upload")
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                        .padding(.top, 4)
+                    } else if item.state == .completed && (item.isRisky || item.check == nil) {
+                        Button {
+                            handleCheckFile(item)
+                        } label: {
+                            Label(item.check == nil ? "Check file" : "Check again", systemImage: "shield.checkerboard")
+                                .font(.caption.weight(.medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(fmhyPurple)
+                        .padding(.top, 2)
                     }
                 }
 
@@ -215,19 +473,11 @@ struct DownloadsView: View {
                 }
             }
 
-            if item.state == .completed && KeychainStore.get("vt.apiKey") != nil {
+            if item.state == .completed {
                 Button {
-                    Task {
-                        await downloads.checkVirusTotal(item.id)
-                    }
+                    handleCheckFile(item)
                 } label: {
-                    Label("Check on VirusTotal", systemImage: "shield.checkerboard")
-                }
-            }
-
-            if let permalink = item.vt?.permalink, let url = URL(string: permalink) {
-                SwiftUI.Link(destination: url) {
-                    Label("View on VirusTotal", systemImage: "arrow.up.right.square")
+                    Label(item.check == nil ? "Check file" : "Check again", systemImage: "shield.checkerboard")
                 }
             }
 
@@ -248,12 +498,82 @@ struct DownloadsView: View {
             return
         }
 
-        let needsConfirmation = warnRiskyFiles && item.isRisky && !item.riskyConfirmed
-        if needsConfirmation {
+        if CheckPolicy.needsExtraConfirm(item.check) {
+            pendingDangerousOpenItem = item
+        } else if warnRiskyFiles && item.isRisky && !item.riskyConfirmed {
             itemToConfirm = item
             showRiskyAlert = true
         } else {
             openFile(fileURL)
+        }
+    }
+
+    private func handleChipTap(_ chip: CheckChipData, for item: DownloadItem) {
+        switch chip.action {
+        case .showResult:
+            if let check = item.check {
+                showingScanResult = check
+            }
+        case .upload:
+            pendingUpload = (item, chip.service)
+        case .tooBig:
+            pendingUploadTooBigService = chip.service
+        case .retry:
+            downloads.checkItem(item.id, services: [chip.service])
+        }
+    }
+
+    private func handleCheckFile(_ item: DownloadItem) {
+        let ready = checkPrefs.readyServices
+        if ready.count == 2 {
+            pendingCheckChooserItem = item
+        } else if ready.count == 1 {
+            downloads.checkItem(item.id, services: ready)
+        } else {
+            showSetUpChecksDialog = true
+        }
+    }
+
+    private func handlePickedFile(_ sourceURL: URL) {
+        guard sourceURL.startAccessingSecurityScopedResource() else { return }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("picked-\(UUID().uuidString)-\(sourceURL.lastPathComponent)")
+        do {
+            if FileManager.default.fileExists(atPath: tempURL.path) {
+                try FileManager.default.removeItem(at: tempURL)
+            }
+            try FileManager.default.copyItem(at: sourceURL, to: tempURL)
+        } catch {
+            return
+        }
+
+        fileImporterProgress = true
+
+        Task {
+            let sha: String
+            do {
+                sha = try await checks.fingerprint(fileURL: tempURL)
+            } catch {
+                await MainActor.run { fileImporterProgress = false }
+                return
+            }
+
+            let ready = checkPrefs.readyServices
+            if ready.isEmpty {
+                await MainActor.run {
+                    fileImporterProgress = false
+                    showSetUpChecksDialog = true
+                }
+                return
+            }
+
+            let res = await checks.checkFile(sha256: sha, services: ready)
+            await MainActor.run {
+                self.fileImporterProgress = false
+                self.showingScanResult = res
+            }
         }
     }
 
@@ -287,6 +607,10 @@ struct DownloadsView: View {
         switch item.state {
         case .completed:
             return item.isRisky ? .orange : .green
+        case .checking:
+            return .blue
+        case .awaitingDecision:
+            return .orange
         case .failed:
             return .red
         case .downloading:
@@ -311,6 +635,10 @@ struct DownloadsView: View {
             } else {
                 return "\(receivedStr) · downloading"
             }
+        case .checking:
+            return "Being checked"
+        case .awaitingDecision:
+            return "Waiting for your decision"
         case .paused:
             return "Paused"
         case .completed:
@@ -331,6 +659,10 @@ struct DownloadsView: View {
         switch item.state {
         case .failed:
             return .red
+        case .checking:
+            return .blue
+        case .awaitingDecision:
+            return .orange
         case .completed:
             return .secondary
         case .downloading:

@@ -11,6 +11,7 @@ struct SettingsView: View {
     @EnvironmentObject var changes: ChangesStore
     @EnvironmentObject var follows: Follows
     @EnvironmentObject var downloads: DownloadManager
+    @EnvironmentObject var checkPrefs: CheckPrefs
 
     @ObservedObject private var adBlocker = AdBlocker.shared
 
@@ -20,9 +21,10 @@ struct SettingsView: View {
     @State private var backupAlertTitle = ""
     @State private var backupAlertMessage = ""
     @State private var showBackupAlert = false
-    @State private var vtApiKey: String = ""
     @AppStorage("downloads.warnRisky") private var warnRiskyFiles: Bool = true
     @State private var showDownloadsSheet = false
+    @State private var editingKeyService: ScanService?
+    @State private var keyInput: String = ""
 
     private var appVersionString: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -70,6 +72,7 @@ struct SettingsView: View {
                 appearanceSection
                 browserSection
                 downloadsSection
+                fileChecksSection
                 dataSection
                 notificationsSection
                 followingSection
@@ -92,10 +95,41 @@ struct SettingsView: View {
             .task {
                 await updateNotificationStatus()
                 refreshExportFile()
-                vtApiKey = KeychainStore.get("vt.apiKey") ?? ""
             }
-            .onDisappear {
-                saveVTKey()
+            .alert(
+                editingKeyService == .virusTotal ? "VirusTotal key" : "Hybrid Analysis key",
+                isPresented: Binding(
+                    get: { editingKeyService != nil },
+                    set: { if !$0 { editingKeyService = nil } }
+                )
+            ) {
+                TextField("API key", text: $keyInput)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                Button("Save") {
+                    if let s = editingKeyService {
+                        checkPrefs.setKey(keyInput, for: s)
+                    }
+                    editingKeyService = nil
+                }
+
+                if let s = editingKeyService, !checkPrefs.maskedKey(for: s).isEmpty {
+                    Button("Remove", role: .destructive) {
+                        checkPrefs.setKey(nil, for: s)
+                        editingKeyService = nil
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {
+                    editingKeyService = nil
+                }
+            } message: {
+                if editingKeyService == .virusTotal {
+                    Text("Get a free key from your VirusTotal account (Profile → API key). Free keys have usage limits.")
+                } else {
+                    Text("Get a free key from your Hybrid Analysis profile (API key tab). Free keys have usage limits.")
+                }
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -247,35 +281,90 @@ struct SettingsView: View {
 
             Toggle("Warn before opening risky files", isOn: $warnRiskyFiles)
                 .fmhyRowBackground()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("VirusTotal API key")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                SecureField("API key", text: $vtApiKey)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .onSubmit {
-                        saveVTKey()
-                    }
-
-                if !vtApiKey.isEmpty || KeychainStore.get("vt.apiKey") != nil {
-                    Button(role: .destructive) {
-                        vtApiKey = ""
-                        KeychainStore.set(nil, for: "vt.apiKey")
-                    } label: {
-                        Text("Remove key")
-                            .font(.footnote)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-            .fmhyRowBackground()
         } header: {
             Text("Downloads")
+        }
+    }
+
+    // MARK: - File and Link Checks
+
+    private var fileChecksSection: some View {
+        SwiftUI.Section {
+            Toggle("VirusTotal", isOn: $checkPrefs.vtEnabled)
+                .fmhyRowBackground()
+
+            HStack {
+                Text("VirusTotal API key")
+                    .font(.subheadline)
+                Spacer()
+                Text(checkPrefs.maskedKey(for: .virusTotal).isEmpty ? "Not set" : checkPrefs.maskedKey(for: .virusTotal))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button(checkPrefs.maskedKey(for: .virusTotal).isEmpty ? "Set" : "Replace") {
+                    keyInput = ""
+                    editingKeyService = .virusTotal
+                }
+                .font(.footnote)
+                .buttonStyle(.borderless)
+
+                if !checkPrefs.maskedKey(for: .virusTotal).isEmpty {
+                    Button("Remove", role: .destructive) {
+                        checkPrefs.setKey(nil, for: .virusTotal)
+                    }
+                    .font(.footnote)
+                    .buttonStyle(.borderless)
+                }
+            }
+            .fmhyRowBackground()
+
+            SwiftUI.Link("Get a VirusTotal key", destination: URL(string: "https://www.virustotal.com/gui/my-apikey")!)
+                .font(.footnote)
+                .tint(fmhyPurple)
+                .fmhyRowBackground()
+
+            Toggle("Hybrid Analysis", isOn: $checkPrefs.haEnabled)
+                .fmhyRowBackground()
+
+            HStack {
+                Text("Hybrid Analysis API key")
+                    .font(.subheadline)
+                Spacer()
+                Text(checkPrefs.maskedKey(for: .hybridAnalysis).isEmpty ? "Not set" : checkPrefs.maskedKey(for: .hybridAnalysis))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Button(checkPrefs.maskedKey(for: .hybridAnalysis).isEmpty ? "Set" : "Replace") {
+                    keyInput = ""
+                    editingKeyService = .hybridAnalysis
+                }
+                .font(.footnote)
+                .buttonStyle(.borderless)
+
+                if !checkPrefs.maskedKey(for: .hybridAnalysis).isEmpty {
+                    Button("Remove", role: .destructive) {
+                        checkPrefs.setKey(nil, for: .hybridAnalysis)
+                    }
+                    .font(.footnote)
+                    .buttonStyle(.borderless)
+                }
+            }
+            .fmhyRowBackground()
+
+            SwiftUI.Link("Get a Hybrid Analysis key", destination: URL(string: "https://hybrid-analysis.com/my-account?tab=%23api-key-tab")!)
+                .font(.footnote)
+                .tint(fmhyPurple)
+                .fmhyRowBackground()
+
+            Toggle("Hold downloads until checked", isOn: $checkPrefs.hold)
+                .fmhyRowBackground()
+
+            Toggle("Auto-check risky files", isOn: $checkPrefs.autoRisky)
+                .fmhyRowBackground()
+        } header: {
+            Text("File and link checks")
         } footer: {
-            Text("Optional. Free keys from virustotal.com. Only the file's SHA-256 hash is sent, never the file.")
+            Text("What is sent: link checks send the web address, only when you tap “Check link first”. File checks send the file's fingerprint (SHA-256), not the file. Files are uploaded only after you agree. Without a key, the check opens the service's website instead.")
         }
     }
 
@@ -509,11 +598,6 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
-
-    private func saveVTKey() {
-        let trimmed = vtApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        KeychainStore.set(trimmed.isEmpty ? nil : trimmed, for: "vt.apiKey")
-    }
 
     private func updateNotificationStatus() async {
         let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
