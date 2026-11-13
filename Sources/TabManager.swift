@@ -35,6 +35,14 @@ private struct SavedSession: Codable {
         }
     }
 
+    weak var siteSettings: SiteSettingsStore? {
+        didSet {
+            for tab in tabs {
+                tab.siteSettings = siteSettings
+            }
+        }
+    }
+
     var selected: BrowserTab? {
         tabs.first(where: { $0.id == selectedId })
     }
@@ -54,6 +62,7 @@ private struct SavedSession: Codable {
                 }
                 tab.unsafeCheck = unsafeCheck
                 tab.onDownload = downloadHandler
+                tab.siteSettings = siteSettings
                 wireTab(tab)
                 restoredTabs.append(tab)
             }
@@ -79,6 +88,7 @@ private struct SavedSession: Codable {
         let tab = BrowserTab(isPrivate: isPrivate)
         tab.unsafeCheck = unsafeCheck
         tab.onDownload = downloadHandler
+        tab.siteSettings = siteSettings
         wireTab(tab)
         if let url = url {
             tab.load(url)
@@ -155,6 +165,12 @@ private struct SavedSession: Codable {
     private func wireTab(_ tab: BrowserTab) {
         tab.onOpenInNewTab = { [weak self] url in
             _ = self?.newTab(url: url, isPrivate: tab.isPrivate, select: true)
+        }
+        tab.onOpenInBackground = { [weak self] url in
+            _ = self?.newTab(url: url, isPrivate: tab.isPrivate, select: false)
+        }
+        tab.onOpenInPrivate = { [weak self] url in
+            _ = self?.newTab(url: url, isPrivate: true, select: true)
         }
 
         var cancellables = Set<AnyCancellable>()

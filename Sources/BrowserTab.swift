@@ -17,6 +17,9 @@ struct BlockedNavigation: Identifiable, Equatable {
 
 @MainActor final class BrowserTab: NSObject, ObservableObject, Identifiable, WKNavigationDelegate, WKUIDelegate {
     static let desktopUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+    static let minZoom: Double = 1.0
+    static let maxZoom: Double = 5.0
+    static let zoomStep: Double = 0.25
 
     let id = UUID()
     let isPrivate: Bool
@@ -38,12 +41,25 @@ struct BlockedNavigation: Identifiable, Equatable {
     @Published var adBlockActive: Bool = false
     @Published var blockedNavigation: BlockedNavigation? = nil
     @Published var lastDownloadStartedAt: Date? = nil
+    @Published var zoom: Double = 1.0 {
+        didSet {
+            let clamped = Self.clampZoom(zoom)
+            if zoom != clamped {
+                zoom = clamped
+                return
+            }
+            webView.pageZoom = CGFloat(clamped)
+        }
+    }
 
     var pendingURL: URL? = nil
     var popupFilter: (WKNavigationAction) -> Bool = { _ in true }
     var onOpenInNewTab: ((URL) -> Void)?
+    var onOpenInBackground: ((URL) -> Void)?
+    var onOpenInPrivate: ((URL) -> Void)?
     var onDownload: ((WKDownload, URL?) -> Void)?
     var unsafeCheck: (@MainActor (URL) -> String?)?
+    weak var siteSettings: SiteSettingsStore?
 
     private var allowedUnsafeHosts: Set<String> = []
     private var lastPopupTime: Date?
@@ -166,14 +182,79 @@ struct BlockedNavigation: Identifiable, Equatable {
         adBlockActive = AdBlocker.shared.shouldBlock(host: host)
     }
 
-    private static func normalizeHost(_ host: String?) -> String? {
-        guard let host = host?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !host.isEmpty else {
-            return nil
+    nonisolated static func normalizeHost(_ host: String?) -> String? {
+        let norm = SiteSettingsStore.normalizeHost(host)
+        return norm.isEmpty ? nil : norm
+    }
+
+    var canResetZoom: Bool {
+        Self.canResetZoom(zoom)
+    }
+
+    func zoomIn() {
+        zoom = Self.stepUpZoom(zoom)
+    }
+
+    func zoomOut() {
+        zoom = Self.stepDownZoom(zoom)
+    }
+
+    func resetZoom() {
+        zoom = 1.0
+    }
+
+    nonisolated static func clampZoom(_ level: Double) -> Double {
+        min(max(level, minZoom), maxZoom)
+    }
+
+    nonisolated static func stepUpZoom(_ level: Double) -> Double {
+        let eps = 1e-4
+        let next = (floor((level + eps) / zoomStep) + 1) * zoomStep
+        let rounded = (next * 1000).rounded() / 1000
+        return clampZoom(rounded)
+    }
+
+    nonisolated static func stepDownZoom(_ level: Double) -> Double {
+        let eps = 1e-4
+        let next = (ceil((level - eps) / zoomStep) - 1) * zoomStep
+        let rounded = (next * 1000).rounded() / 1000
+        return clampZoom(rounded)
+    }
+
+    nonisolated static func zoomPercentage(_ level: Double) -> Int {
+        Int((clampZoom(level) * 100).rounded())
+    }
+
+    nonisolated static func canResetZoom(_ level: Double) -> Bool {
+        abs(level - 1.0) >= 0.005
+    }
+
+    func applyDarkPage() {
+        let host = Self.normalizeHost(webView.url?.host ?? self.url?.host)
+        let isDark = siteSettings?.config(for: host).darkPage ?? false
+        let css = "html{filter:invert(1) hue-rotate(180deg)} img,video,picture,canvas{filter:invert(1) hue-rotate(180deg)}"
+        if isDark {
+            let js = """
+            (function() {
+                var el = document.getElementById('fmhy-dark-page-style');
+                if (!el) {
+                    el = document.createElement('style');
+                    el.id = 'fmhy-dark-page-style';
+                    el.textContent = '\(css)';
+                    (document.head || document.documentElement).appendChild(el);
+                }
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        } else {
+            let js = """
+            (function() {
+                var el = document.getElementById('fmhy-dark-page-style');
+                if (el) { el.remove(); }
+            })();
+            """
+            webView.evaluateJavaScript(js, completionHandler: nil)
         }
-        if host.hasPrefix("www.") {
-            return String(host.dropFirst(4))
-        }
-        return host
     }
 
     // MARK: - WKNavigationDelegate
@@ -181,10 +262,11 @@ struct BlockedNavigation: Identifiable, Equatable {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        preferences: WKWebpagePreferences,
+        decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
         guard let url = navigationAction.request.url else {
-            decisionHandler(.cancel)
+            decisionHandler(.cancel, preferences)
             return
         }
 
@@ -195,11 +277,22 @@ struct BlockedNavigation: Identifiable, Equatable {
             let normalizedHost = Self.normalizeHost(url.host)
             AdBlocker.shared.apply(to: webView.configuration.userContentController, host: normalizedHost)
 
+            if let config = siteSettings?.config(for: normalizedHost) {
+                preferences.allowsContentJavaScript = config.javaScript
+                let isDesktop = config.desktop || desktopMode
+                preferences.preferredContentMode = isDesktop ? .desktop : .mobile
+                webView.customUserAgent = isDesktop ? Self.desktopUserAgent : nil
+            } else {
+                preferences.allowsContentJavaScript = true
+                preferences.preferredContentMode = desktopMode ? .desktop : .mobile
+                webView.customUserAgent = desktopMode ? Self.desktopUserAgent : nil
+            }
+
             if let check = unsafeCheck, let reason = check(url) {
                 let hostKey = normalizedHost ?? (url.host?.lowercased() ?? "")
                 if !allowedUnsafeHosts.contains(hostKey) {
                     self.blockedNavigation = BlockedNavigation(url: url, reason: reason)
-                    decisionHandler(.cancel)
+                    decisionHandler(.cancel, preferences)
                     return
                 }
             }
@@ -208,13 +301,13 @@ struct BlockedNavigation: Identifiable, Equatable {
         if scheme == "http" || scheme == "https" || scheme == "about" {
             if navigationAction.targetFrame == nil {
                 webView.load(navigationAction.request)
-                decisionHandler(.cancel)
+                decisionHandler(.cancel, preferences)
                 return
             }
-            decisionHandler(.allow)
+            decisionHandler(.allow, preferences)
         } else {
             UIApplication.shared.open(url)
-            decisionHandler(.cancel)
+            decisionHandler(.cancel, preferences)
         }
     }
 
@@ -266,6 +359,8 @@ struct BlockedNavigation: Identifiable, Equatable {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         updateAdBlockActive()
+        webView.pageZoom = CGFloat(zoom)
+        applyDarkPage()
     }
 
     func webView(
@@ -290,7 +385,90 @@ struct BlockedNavigation: Identifiable, Equatable {
         }
     }
 
+    nonisolated static func hasRealAddress(_ url: URL?) -> Bool {
+        guard let url = url else { return false }
+        let raw = url.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty { return false }
+        if raw.lowercased().hasPrefix("javascript:") { return false }
+        if raw == "#" || raw.lowercased().hasPrefix("about:blank") { return false }
+        return true
+    }
+
     // MARK: - WKUIDelegate
+
+    func webView(
+        _ webView: WKWebView,
+        contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
+        completionHandler: @escaping (UIContextMenuConfiguration?) -> Void
+    ) {
+        guard let linkURL = elementInfo.linkURL, Self.hasRealAddress(linkURL) else {
+            completionHandler(nil)
+            return
+        }
+
+        let config = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let openAction = UIAction(title: "Open", image: UIImage(systemName: "safari")) { _ in
+                self?.load(linkURL)
+            }
+            let newTabAction = UIAction(title: "Open in new tab", image: UIImage(systemName: "plus.square")) { _ in
+                self?.onOpenInNewTab?(linkURL)
+            }
+            let backgroundAction = UIAction(title: "Open in background tab", image: UIImage(systemName: "square.on.square")) { _ in
+                self?.onOpenInBackground?(linkURL)
+            }
+            let privateAction = UIAction(title: "Open in private tab", image: UIImage(systemName: "shield")) { _ in
+                self?.onOpenInPrivate?(linkURL)
+            }
+            let copyAction = UIAction(title: "Copy link", image: UIImage(systemName: "doc.on.doc")) { _ in
+                UIPasteboard.general.string = linkURL.absoluteString
+            }
+            let shareAction = UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { [weak self] _ in
+                guard let self = self else { return }
+                let activityVC = UIActivityViewController(activityItems: [linkURL], applicationActivities: nil)
+                if let popover = activityVC.popoverPresentationController {
+                    popover.sourceView = self.webView
+                    popover.sourceRect = CGRect(x: self.webView.bounds.midX, y: self.webView.bounds.midY, width: 0, height: 0)
+                }
+                self.topViewController()?.present(activityVC, animated: true)
+            }
+            return UIMenu(title: linkURL.absoluteString, children: [
+                openAction,
+                newTabAction,
+                backgroundAction,
+                privateAction,
+                copyAction,
+                shareAction
+            ])
+        }
+
+        completionHandler(config)
+    }
+
+    @MainActor
+    private func topViewController(base: UIViewController? = nil) -> UIViewController? {
+        let root: UIViewController?
+        if let base = base {
+            root = base
+        } else {
+            let windowScene = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first { $0.activationState == .foregroundActive }
+                ?? UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+            root = windowScene?.windows.first(where: { $0.isKeyWindow })?.rootViewController
+                ?? windowScene?.windows.first?.rootViewController
+        }
+
+        if let nav = root as? UINavigationController {
+            return topViewController(base: nav.visibleViewController)
+        }
+        if let tab = root as? UITabBarController {
+            return topViewController(base: tab.selectedViewController)
+        }
+        if let presented = root?.presentedViewController {
+            return topViewController(base: presented)
+        }
+        return root
+    }
 
     func webView(
         _ webView: WKWebView,
@@ -305,6 +483,10 @@ struct BlockedNavigation: Identifiable, Equatable {
         }
 
         let currentHost = Self.normalizeHost(webView.url?.host ?? self.url?.host)
+        if let config = siteSettings?.config(for: currentHost), !config.popups {
+            return nil
+        }
+
         if AdBlocker.shared.shouldBlock(host: currentHost) {
             if let last = lastPopupTime, Date().timeIntervalSince(last) < 2.0 {
                 return nil

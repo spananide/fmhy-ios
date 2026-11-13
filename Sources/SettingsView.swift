@@ -13,6 +13,7 @@ struct SettingsView: View {
     @EnvironmentObject var downloads: DownloadManager
     @EnvironmentObject var checkPrefs: CheckPrefs
     @EnvironmentObject var vtSiteChecks: VtSiteChecks
+    @EnvironmentObject var siteSettings: SiteSettingsStore
 
     @ObservedObject private var adBlocker = AdBlocker.shared
 
@@ -262,6 +263,19 @@ struct SettingsView: View {
                     Text("Sites with blocking off")
                     Spacer()
                     Text("\(adBlocker.allowlist.count)")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .fmhyRowBackground()
+
+            NavigationLink {
+                ConfiguredSitesSettingsView()
+                    .environmentObject(siteSettings)
+            } label: {
+                HStack {
+                    Text("Sites with custom settings")
+                    Spacer()
+                    Text("\(siteSettings.hosts.count)")
                         .foregroundStyle(.secondary)
                 }
             }

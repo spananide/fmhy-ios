@@ -16,11 +16,14 @@ struct FMHYApp: App {
     @StateObject private var vtSiteChecks: VtSiteChecks
     @StateObject private var homeLayoutStore = HomeLayoutStore()
     @StateObject private var visitTracker = VisitTracker()
+    @StateObject private var siteSettings: SiteSettingsStore
 
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let tabManager = TabManager()
+        let siteSettingsStore = SiteSettingsStore()
+        tabManager.siteSettings = siteSettingsStore
         let wikiStore = WikiStore()
         let changesStore = ChangesStore()
         let followsStore = Follows()
@@ -36,6 +39,7 @@ struct FMHYApp: App {
         }
 
         _tabs = StateObject(wrappedValue: tabManager)
+        _siteSettings = StateObject(wrappedValue: siteSettingsStore)
         _hub = StateObject(wrappedValue: BrowserHub(tabs: tabManager))
         _store = StateObject(wrappedValue: wikiStore)
         _changes = StateObject(wrappedValue: changesStore)
@@ -67,6 +71,7 @@ struct FMHYApp: App {
                 .environmentObject(vtSiteChecks)
                 .environmentObject(homeLayoutStore)
                 .environmentObject(visitTracker)
+                .environmentObject(siteSettings)
                 .preferredColorScheme(settings.theme.colorScheme)
                 .tint(settings.accent.color)
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)

@@ -7,6 +7,7 @@ struct BrowserView: View {
     @EnvironmentObject var hub: BrowserHub
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var downloads: DownloadManager
+    @EnvironmentObject var siteSettings: SiteSettingsStore
     @ObservedObject private var adBlocker = AdBlocker.shared
 
     @FocusState private var isAddressFocused: Bool
@@ -17,6 +18,7 @@ struct BrowserView: View {
     @State private var showTabSwitcher = false
     @State private var showDownloadsSheet = false
     @State private var showDownloadToast = false
+    @State private var showShieldSheet = false
 
     private var currentHost: String? {
         guard let host = tabs.selected?.url?.host, !host.isEmpty else {
@@ -55,6 +57,10 @@ struct BrowserView: View {
     }
 
     var body: some View {
+        layerAlertAndToast
+    }
+
+    private var layerBase: some View {
         VStack(spacing: 0) {
             topBar
 
@@ -67,105 +73,128 @@ struct BrowserView: View {
                 Divider()
             }
 
-            Group {
-                if let tab = tabs.selected, tab.url != nil || tab.pendingURL != nil {
-                    WebViewHost(tab: tab)
-                        .id(tab.id)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    BrowserStartView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
+            mainContent
 
             Divider()
 
             bottomToolbar
         }
-        .onAppear {
-            syncAddress()
-            updateVerdict(for: tabs.selected?.url)
-        }
-        .onChange(of: tabs.selectedId) { _, _ in
-            syncAddress()
-            updateVerdict(for: tabs.selected?.url)
-        }
-        .onChange(of: tabs.selected?.url) { _, newUrl in
-            syncAddress()
-            updateVerdict(for: newUrl)
-        }
-        .onChange(of: isAddressFocused) { _, focused in
-            if focused {
-                addressText = tabs.selected?.url?.absoluteString ?? ""
+    }
+
+    private var mainContent: some View {
+        Group {
+            if let tab = tabs.selected, tab.url != nil || tab.pendingURL != nil {
+                WebViewHost(tab: tab)
+                    .id(tab.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
+                BrowserStartView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private var layerSync: some View {
+        layerBase
+            .onAppear {
                 syncAddress()
+                updateVerdict(for: tabs.selected?.url)
             }
-        }
-        .sheet(isPresented: $showSafetySheet) {
-            SafetyInfoSheet(
-                verdict: cachedVerdict,
-                host: cachedHost,
-                isPrivate: tabs.selected?.isPrivate ?? false
-            )
-            .presentationDetents([.height(380), .large])
-        }
-        .sheet(isPresented: $showTabSwitcher) {
-            TabSwitcherSheet()
-        }
-        .sheet(isPresented: $showDownloadsSheet) {
-            DownloadsView()
-        }
-        .onChange(of: tabs.selected?.lastDownloadStartedAt) { _, newValue in
-            guard newValue != nil else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                showDownloadToast = true
+            .onChange(of: tabs.selectedId) { _, _ in
+                syncAddress()
+                updateVerdict(for: tabs.selected?.url)
             }
-            Task {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            .onChange(of: tabs.selected?.url) { _, newUrl in
+                syncAddress()
+                updateVerdict(for: newUrl)
+            }
+            .onChange(of: isAddressFocused) { _, focused in
+                if focused {
+                    addressText = tabs.selected?.url?.absoluteString ?? ""
+                } else {
+                    syncAddress()
+                }
+            }
+    }
+
+    private var layerSheets: some View {
+        layerSync
+            .sheet(isPresented: $showSafetySheet) {
+                SafetyInfoSheet(
+                    verdict: cachedVerdict,
+                    host: cachedHost,
+                    isPrivate: tabs.selected?.isPrivate ?? false
+                )
+                .presentationDetents([.height(380), .large])
+            }
+            .sheet(isPresented: $showTabSwitcher) {
+                TabSwitcherSheet()
+            }
+            .sheet(isPresented: $showDownloadsSheet) {
+                DownloadsView()
+            }
+            .sheet(isPresented: $showShieldSheet) {
+                ShieldSheet(tab: tabs.selected, host: currentHost)
+                    .presentationDetents([.medium, .large])
+            }
+    }
+
+    private var layerAlertAndToast: some View {
+        layerSheets
+            .onChange(of: tabs.selected?.lastDownloadStartedAt) { _, newValue in
+                guard newValue != nil else { return }
                 withAnimation(.easeInOut(duration: 0.25)) {
-                    showDownloadToast = false
+                    showDownloadToast = true
                 }
-            }
-        }
-        .overlay(alignment: .top) {
-            if showDownloadToast {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Download started")
-                        .font(.subheadline.bold())
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .shadow(radius: 4)
-                .padding(.top, 50)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .alert(
-            "Blocked unsafe site",
-            isPresented: Binding(
-                get: { tabs.selected?.blockedNavigation != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        tabs.selected?.dismissBlocked()
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showDownloadToast = false
                     }
                 }
-            ),
-            presenting: tabs.selected?.blockedNavigation
-        ) { blocked in
-            Button("Go back", role: .cancel) {
-                tabs.selected?.dismissBlocked()
             }
-            Button("Open anyway") {
-                tabs.selected?.proceedAnyway(blocked)
+            .overlay(alignment: .top) {
+                if showDownloadToast {
+                    downloadToast
+                }
             }
-        } message: { blocked in
-            let host = blocked.url.host ?? blocked.url.absoluteString
-            Text("\(blocked.reason)\n\n\(host)")
+            .alert(
+                "Blocked unsafe site",
+                isPresented: Binding(
+                    get: { tabs.selected?.blockedNavigation != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            tabs.selected?.dismissBlocked()
+                        }
+                    }
+                ),
+                presenting: tabs.selected?.blockedNavigation
+            ) { blocked in
+                Button("Go back", role: .cancel) {
+                    tabs.selected?.dismissBlocked()
+                }
+                Button("Open anyway") {
+                    tabs.selected?.proceedAnyway(blocked)
+                }
+            } message: { blocked in
+                Text("\(blocked.reason)\n\n\(blocked.url.host ?? blocked.url.absoluteString)")
+            }
+    }
+
+    private var downloadToast: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.down.circle.fill")
+                .foregroundStyle(.green)
+            Text("Download started")
+                .font(.subheadline.bold())
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .shadow(radius: 4)
+        .padding(.top, 50)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private var topBar: some View {
@@ -231,32 +260,28 @@ struct BrowserView: View {
         .padding(.vertical, 8)
     }
 
-    private var shieldMenu: some View {
-        Menu {
-            Toggle("Ad blocking everywhere", isOn: $adBlocker.isEnabled)
+    private var isCurrentSiteBlocking: Bool {
+        tabs.selected?.adBlockActive ?? adBlocker.isEnabled
+    }
 
-            if let tab = tabs.selected, let host = currentHost {
-                Button {
-                    tab.toggleAdBlockForCurrentSite()
-                } label: {
-                    let isBlocking = tab.adBlockActive
-                    Label(
-                        isBlocking ? "Turn blocking off for \(host)" : "Turn blocking on for \(host)",
-                        systemImage: isBlocking ? "shield.slash" : "shield.checkerboard"
-                    )
-                }
-            } else {
-                Button {} label: {
-                    Label("Turn blocking on/off for site", systemImage: "shield")
-                }
-                .disabled(true)
-            }
+    private var isDesktopActive: Bool {
+        tabs.selected?.desktopMode ?? false
+    }
+
+    private var resetZoomLabel: String {
+        let zoom = tabs.selected?.zoom ?? 1.0
+        let percent = BrowserTab.zoomPercentage(zoom)
+        return "Reset zoom (\(percent)%)"
+    }
+
+    private var shieldButton: some View {
+        Button {
+            showShieldSheet = true
         } label: {
-            let isBlocking = tabs.selected?.adBlockActive ?? adBlocker.isEnabled
-            Image(systemName: isBlocking ? "shield.checkerboard" : "shield.slash")
+            Image(systemName: isCurrentSiteBlocking ? "shield.checkerboard" : "shield.slash")
                 .font(.system(size: 18, weight: .medium))
         }
-        .accessibilityLabel("Ad blocking")
+        .accessibilityLabel("Shield protections")
     }
 
     private var bottomToolbar: some View {
@@ -298,11 +323,32 @@ struct BrowserView: View {
 
             Spacer()
 
-            shieldMenu
+            shieldButton
 
             Spacer()
 
             Menu {
+                Button {
+                    tabs.selected?.zoomIn()
+                } label: {
+                    Label("Zoom in", systemImage: "plus.magnifyingglass")
+                }
+                .disabled(tabs.selected == nil)
+
+                Button {
+                    tabs.selected?.zoomOut()
+                } label: {
+                    Label("Zoom out", systemImage: "minus.magnifyingglass")
+                }
+                .disabled(tabs.selected == nil)
+
+                Button {
+                    tabs.selected?.resetZoom()
+                } label: {
+                    Label(resetZoomLabel, systemImage: "arrow.counterclockwise")
+                }
+                .disabled(tabs.selected == nil || !(tabs.selected?.canResetZoom ?? false))
+
                 Button {
                     showDownloadsSheet = true
                 } label: {
@@ -334,10 +380,9 @@ struct BrowserView: View {
                 Button {
                     tabs.selected?.desktopMode.toggle()
                 } label: {
-                    let isDesktop = tabs.selected?.desktopMode ?? false
                     Label(
-                        isDesktop ? "Request mobile site" : "Request desktop site",
-                        systemImage: isDesktop ? "iphone" : "desktopcomputer"
+                        isDesktopActive ? "Request mobile site" : "Request desktop site",
+                        systemImage: isDesktopActive ? "iphone" : "desktopcomputer"
                     )
                 }
                 .disabled(tabs.selected == nil)
