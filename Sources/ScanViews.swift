@@ -404,6 +404,37 @@ public struct ScanResultSheet: View {
         }
     }
 
+    @ViewBuilder
+    private func serviceSection(_ serviceResult: ServiceResult) -> some View {
+        SwiftUI.Section {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(serviceResult.service.label)
+                                .font(.headline)
+
+                            Text(CheckUiText.serviceLine(serviceResult))
+                                .font(.body)
+
+                            if let scannedAt = serviceResult.scannedAt {
+                                let formatter = DateFormatter()
+                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                formatter.dateFormat = "d MMM yyyy"
+                                Text("Scanned \(formatter.string(from: scannedAt))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            if let reportUrl = serviceResult.reportUrl, let url = URL(string: reportUrl) {
+                                SwiftUI.Link("Full report", destination: url)
+                                    .font(.subheadline.weight(.semibold))
+                                    .tint(fmhyPurple)
+                                    .padding(.top, 2)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .fmhyRowBackground()
+    }
+
     public var body: some View {
         NavigationStack {
             List {
@@ -432,35 +463,8 @@ public struct ScanResultSheet: View {
                 }
                 .fmhyRowBackground()
 
-                ForEach(Array(result.services.enumerated()), id: \.offset) { entry in
-                    let serviceResult: ServiceResult = entry.element
-                    SwiftUI.Section {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(serviceResult.service.label)
-                                .font(.headline)
-
-                            Text(CheckUiText.serviceLine(serviceResult))
-                                .font(.body)
-
-                            if let scannedAt = serviceResult.scannedAt {
-                                let formatter = DateFormatter()
-                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                formatter.dateFormat = "d MMM yyyy"
-                                Text("Scanned \(formatter.string(from: scannedAt))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            if let reportUrl = serviceResult.reportUrl, let url = URL(string: reportUrl) {
-                                SwiftUI.Link("Full report", destination: url)
-                                    .font(.subheadline.weight(.semibold))
-                                    .tint(fmhyPurple)
-                                    .padding(.top, 2)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .fmhyRowBackground()
+                ForEach(0..<result.services.count, id: \.self) { index in
+                    serviceSection(result.services[index])
                 }
 
                 SwiftUI.Section {
