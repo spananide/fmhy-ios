@@ -7,19 +7,18 @@ struct HomeView: View {
     @EnvironmentObject var bookmarks: Bookmarks
     @EnvironmentObject var hub: BrowserHub
     @EnvironmentObject var changes: ChangesStore
+    @EnvironmentObject var layoutStore: HomeLayoutStore
 
     @State private var showSettings = false
+    @State private var showEditHome = false
+    @State private var randomPickId: String? = nil
+    @State private var selectedEntry: Entry? = nil
 
     private static let countFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         return formatter
     }()
-
-    private func formatSiteCount(_ count: Int) -> String {
-        let formatted = Self.countFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
-        return count == 1 ? "\(formatted) site" : "\(formatted) sites"
-    }
 
     private var listHeaderText: String {
         let formattedTotal = Self.countFormatter.string(from: NSNumber(value: store.totalSites)) ?? "\(store.totalSites)"
@@ -39,121 +38,158 @@ struct HomeView: View {
         }
     }
 
+    private var isSearchFirst: Bool {
+        layoutStore.layout.enabledBlocks.first == .search
+    }
+
+    private var newSinceCount: Int {
+        changes.changes.filter { change in
+            change.kind == "added" && change.ts > changes.lastSeenTs
+        }.count
+    }
+
     var body: some View {
         NavigationStack {
-            List {
-                let layoutGroups = SectionLayout.layout(sections: store.sections)
-                ForEach(Array(layoutGroups.enumerated()), id: \.offset) { index, group in
-                    SwiftUI.Section {
-                        ForEach(group.sections) { section in
-                            NavigationLink(value: section) {
-                                HStack(spacing: 12) {
-                                    Text(sectionEmoji(section.id))
-                                        .font(.system(size: 28))
-                                        .frame(width: 34, alignment: .center)
-
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(section.title)
-                                            .font(.headline)
-                                            .foregroundStyle(.primary)
-
-                                        if !section.description.isEmpty {
-                                            Text(section.description)
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(2)
-                                        }
-
-                                        let count = store.sectionCounts[section.id] ?? 0
-                                        Text(formatSiteCount(count))
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .padding(.vertical, 2)
-
-                                    if follows.isFollowing(section.id) {
-                                        Spacer()
-                                        Image(systemName: "bell.fill")
-                                            .font(.caption)
-                                            .foregroundStyle(settings.accent.color)
-                                            .accessibilityLabel("Followed")
-                                    }
-                                }
-                            }
-                            .fmhyRowBackground()
-                        }
-                    } header: {
-                        if index == 0 {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(listHeaderText)
-                                    .textCase(nil)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.bottom, 2)
-                                Text(group.title)
-                            }
-                        } else {
-                            Text(group.title)
-                        }
-                    } footer: {
-                        if index == layoutGroups.count - 1 {
-                            VStack(alignment: .center, spacing: 4) {
-                                if let error = store.errorMessage {
-                                    Text(error)
-                                        .foregroundStyle(.red)
-                                }
-                                Text(footerText)
-                                    .foregroundStyle(.secondary)
-                                Text("[Send feedback](https://github.com/spananide/fmhy-ios/issues/new/choose)")
-                            }
-                            .font(.footnote)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 8)
-                        }
-                    }
+            contentList
+                .navigationTitle("FMHY")
+                .navigationDestination(for: WikiSection.self) { section in
+                    SectionView(section: section)
                 }
-            }
-            .listStyle(.insetGrouped)
-            .fmhyListStyle()
-            .navigationTitle("FMHY")
-            .navigationDestination(for: WikiSection.self) { section in
-                SectionView(section: section)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityLabel("Settings")
+                .toolbar {
+                    leadingToolbar
+                    trailingToolbar
                 }
+        }
+        .sheet(isPresented: $showSettings) {
+            settingsSheet
+        }
+        .sheet(isPresented: $showEditHome) {
+            EditHomeView()
+        }
+        .sheet(item: $selectedEntry) { entry in
+            EntryDetailSheet(entry: entry)
+        }
+    }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    if store.isRefreshing {
-                        ProgressView()
-                    } else {
-                        Button {
-                            Task {
-                                await store.refresh()
-                            }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .accessibilityLabel("Refresh wiki")
-                        .disabled(store.isLoading)
-                    }
-                }
+    private var contentList: some View {
+        List {
+            ForEach(layoutStore.layout.enabledBlocks, id: \.self) { block in
+                blockView(for: block)
             }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
-                    .environmentObject(settings)
-                    .environmentObject(store)
-                    .environmentObject(bookmarks)
-                    .environmentObject(hub)
-                    .environmentObject(changes)
-                    .environmentObject(follows)
+            footerSection
+        }
+        .listStyle(.insetGrouped)
+        .fmhyListStyle()
+    }
+
+    @ViewBuilder
+    private func blockView(for block: HomeBlock) -> some View {
+        switch block {
+        case .search:
+            SearchBlockView(
+                totalEntries: store.totalSites,
+                showHeadline: !isSearchFirst,
+                onSearch: { hub.requestedTab = 1 }
+            )
+        case .newSince:
+            NewSinceBlockView(
+                count: newSinceCount,
+                onOpen: { hub.requestedTab = 5 }
+            )
+        case .randomPick:
+            RandomPickBlockView(
+                pickId: $randomPickId,
+                onSelect: { selected in selectedEntry = selected }
+            )
+        case .pinned:
+            PinnedBlockView()
+        case .newInPinned:
+            NewInPinnedBlockView(
+                onSelect: { selected in selectedEntry = selected },
+                onSeeAll: { hub.requestedTab = 5 }
+            )
+        case .favourites:
+            FavouritesBlockView(
+                onSelect: { selected in selectedEntry = selected },
+                onSeeAll: { hub.requestedTab = 2 }
+            )
+        case .suggestions:
+            SuggestionsBlockView(
+                onSelect: { selected in selectedEntry = selected }
+            )
+        case .sections:
+            SectionsListBlock(
+                headerText: listHeaderText
+            )
+        }
+    }
+
+    private var footerSection: some View {
+        SwiftUI.Section {
+            EmptyView()
+        } footer: {
+            VStack(alignment: .center, spacing: 4) {
+                if let error = store.errorMessage {
+                    Text(error)
+                        .foregroundStyle(.red)
+                }
+                Text(footerText)
+                    .foregroundStyle(.secondary)
+                Text("[Send feedback](https://github.com/spananide/fmhy-ios/issues/new/choose)")
+            }
+            .font(.footnote)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.top, 8)
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var leadingToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityLabel("Settings")
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var trailingToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                showEditHome = true
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+            }
+            .accessibilityLabel("Edit home")
+        }
+
+        ToolbarItem(placement: .topBarTrailing) {
+            if store.isRefreshing {
+                ProgressView()
+            } else {
+                Button {
+                    Task {
+                        await store.refresh()
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("Refresh wiki")
+                .disabled(store.isLoading)
             }
         }
+    }
+
+    private var settingsSheet: some View {
+        SettingsView()
+            .environmentObject(settings)
+            .environmentObject(store)
+            .environmentObject(bookmarks)
+            .environmentObject(hub)
+            .environmentObject(changes)
+            .environmentObject(follows)
     }
 }

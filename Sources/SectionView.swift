@@ -12,6 +12,7 @@ struct SectionView: View {
     let section: WikiSection
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var follows: Follows
+    @EnvironmentObject var visits: VisitTracker
 
     @State private var allGroups: [SectionGroup] = []
     @State private var displayedGroups: [SectionGroup] = []
@@ -178,6 +179,9 @@ struct SectionView: View {
             }
         }
         .searchable(text: $filterText, prompt: "Filter in \(section.title)")
+        .onAppear {
+            visits.record(sectionId: section.id)
+        }
         .task {
             computeGroups()
         }

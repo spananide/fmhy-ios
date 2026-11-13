@@ -14,6 +14,8 @@ struct FMHYApp: App {
     @StateObject private var scanStore: ScanStore
     @StateObject private var downloadChecks: DownloadChecks
     @StateObject private var vtSiteChecks: VtSiteChecks
+    @StateObject private var homeLayoutStore = HomeLayoutStore()
+    @StateObject private var visitTracker = VisitTracker()
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -63,6 +65,8 @@ struct FMHYApp: App {
                 .environmentObject(scanStore)
                 .environmentObject(downloadChecks)
                 .environmentObject(vtSiteChecks)
+                .environmentObject(homeLayoutStore)
+                .environmentObject(visitTracker)
                 .preferredColorScheme(settings.theme.colorScheme)
                 .tint(settings.accent.color)
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)
