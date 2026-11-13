@@ -11,6 +11,7 @@ struct HomeView: View {
 
     @State private var showSettings = false
     @State private var showEditHome = false
+    @State private var showReportSheet = false
     @State private var randomPickId: String? = nil
     @State private var selectedEntry: Entry? = nil
 
@@ -68,6 +69,9 @@ struct HomeView: View {
         }
         .sheet(item: $selectedEntry) { entry in
             EntryDetailSheet(entry: entry)
+        }
+        .sheet(isPresented: $showReportSheet) {
+            ReportSheet()
         }
     }
 
@@ -128,14 +132,27 @@ struct HomeView: View {
         SwiftUI.Section {
             EmptyView()
         } footer: {
-            VStack(alignment: .center, spacing: 4) {
+            VStack(alignment: .center, spacing: 6) {
                 if let error = store.errorMessage {
                     Text(error)
                         .foregroundStyle(.red)
                 }
                 Text(footerText)
                     .foregroundStyle(.secondary)
-                Text("[Send feedback](https://github.com/spananide/fmhy-ios/issues/new/choose)")
+                HStack(spacing: 12) {
+                    NavigationLink {
+                        LegendView()
+                    } label: {
+                        Text("Icon legend")
+                    }
+
+                    Text("·")
+                        .foregroundStyle(.secondary)
+
+                    Button("Report a problem") {
+                        showReportSheet = true
+                    }
+                }
             }
             .font(.footnote)
             .frame(maxWidth: .infinity, alignment: .center)

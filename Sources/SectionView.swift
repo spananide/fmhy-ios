@@ -18,6 +18,7 @@ struct SectionView: View {
     @State private var displayedGroups: [SectionGroup] = []
     @State private var filterText = ""
     @State private var selectedEntry: Entry?
+    @State private var selectedNote: Note?
 
     private func computeGroups() {
         let sectionEntries = store.entries(in: section.id)
@@ -129,7 +130,9 @@ struct SectionView: View {
                         if let heading = group.heading {
                             SwiftUI.Section {
                                 ForEach(group.notes) { note in
-                                    NoteRow(text: note.text)
+                                    NoteRow(text: note.text) {
+                                        selectedNote = note
+                                    }
                                 }
                                 ForEach(group.entries) { entry in
                                     EntryRow(entry: entry) { selected in
@@ -142,7 +145,9 @@ struct SectionView: View {
                         } else {
                             SwiftUI.Section {
                                 ForEach(group.notes) { note in
-                                    NoteRow(text: note.text)
+                                    NoteRow(text: note.text) {
+                                        selectedNote = note
+                                    }
                                 }
                                 ForEach(group.entries) { entry in
                                     EntryRow(entry: entry) { selected in
@@ -194,21 +199,42 @@ struct SectionView: View {
         .sheet(item: $selectedEntry) { entry in
             EntryDetailSheet(entry: entry)
         }
+        .sheet(item: $selectedNote) { note in
+            NoteSheet(note: note)
+        }
     }
 }
 
 struct NoteRow: View {
     let text: String
+    var onSelect: (() -> Void)? = nil
 
     var body: some View {
-        if let attr = try? AttributedString(markdown: text) {
-            Text(attr)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        } else {
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        Button {
+            onSelect?()
+        } label: {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
+
+                if let attr = try? AttributedString(markdown: text) {
+                    Text(attr)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                } else {
+                    Text(text)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }

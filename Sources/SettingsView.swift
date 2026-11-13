@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var editingKeyService: ScanService?
     @State private var keyInput: String = ""
     @State private var showForgetSitesConfirm = false
+    @State private var showReportSheet = false
 
     private var appVersionString: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -94,6 +95,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showDownloadsSheet) {
                 DownloadsView()
+            }
+            .sheet(isPresented: $showReportSheet) {
+                ReportSheet()
             }
             .task {
                 await updateNotificationStatus()
@@ -506,29 +510,17 @@ struct SettingsView: View {
 
     private var followingSection: some View {
         SwiftUI.Section {
-            if followedItems.isEmpty {
-                Text("Follow categories with the bell in a category")
-                    .foregroundStyle(.secondary)
-                    .fmhyRowBackground()
-            } else {
-                ForEach(followedItems) { item in
-                    HStack {
-                        Text(item.title)
-                        Spacer()
-                        Image(systemName: "bell.fill")
-                            .font(.caption)
-                            .foregroundStyle(settings.accent.color)
-                    }
-                    .fmhyRowBackground()
-                }
-                .onDelete { indexSet in
-                    for index in indexSet {
-                        let item = followedItems[index]
-                        follows.toggle(item.id)
-                    }
-                    refreshExportFile()
+            NavigationLink {
+                FollowingView()
+            } label: {
+                HStack {
+                    Text("Followed categories")
+                    Spacer()
+                    Text("\(follows.sectionIds.count)")
+                        .foregroundStyle(.secondary)
                 }
             }
+            .fmhyRowBackground()
         } header: {
             Text("Following")
         }
@@ -591,15 +583,21 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
                 .fmhyRowBackground()
 
+            NavigationLink {
+                LegendView()
+            } label: {
+                Label("Icon legend", systemImage: "questionmark.circle")
+            }
+            .fmhyRowBackground()
+
             Button("Source code") {
                 dismiss()
                 hub.open("https://github.com/spananide/fmhy-ios")
             }
             .fmhyRowBackground()
 
-            Button("Send feedback") {
-                dismiss()
-                hub.open("https://github.com/spananide/fmhy-ios/issues/new/choose")
+            Button("Report a problem") {
+                showReportSheet = true
             }
             .fmhyRowBackground()
 

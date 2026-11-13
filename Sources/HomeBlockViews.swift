@@ -254,7 +254,17 @@ struct PinnedBlockView: View {
                     .fmhyRowBackground()
                 }
             } header: {
-                Text("Pinned categories")
+                HStack {
+                    Text("Pinned categories")
+                    Spacer()
+                    NavigationLink {
+                        FollowingView()
+                    } label: {
+                        Text("Manage")
+                            .font(.subheadline)
+                            .foregroundStyle(settings.accent.color)
+                    }
+                }
             }
         }
     }
