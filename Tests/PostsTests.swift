@@ -30,8 +30,8 @@ final class PostsTests: XCTestCase {
         XCTAssertEqual(epochJan2025, 1735689600)
 
         let epochWithFrontMatter = PostsListing.parseDate(fileName: "random.md", frontMatterDate: "2025-06-15")
-        // 2025-06-15 00:00:00 UTC = 1750032000
-        XCTAssertEqual(epochWithFrontMatter, 1750032000)
+        // 2025-06-15 00:00:00 UTC = 1749945600
+        XCTAssertEqual(epochWithFrontMatter, 1749945600)
 
         let epochUnknown = PostsListing.parseDate(fileName: "unknown.md", frontMatterDate: nil)
         XCTAssertEqual(epochUnknown, 0)
