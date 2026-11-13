@@ -404,6 +404,13 @@ public struct ScanResultSheet: View {
         }
     }
 
+    private static func dateText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter.string(from: date)
+    }
+
     @ViewBuilder
     private func serviceSection(_ serviceResult: ServiceResult) -> some View {
         SwiftUI.Section {
@@ -415,10 +422,7 @@ public struct ScanResultSheet: View {
                                 .font(.body)
 
                             if let scannedAt = serviceResult.scannedAt {
-                                let formatter = DateFormatter()
-                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                formatter.dateFormat = "d MMM yyyy"
-                                Text("Scanned \(formatter.string(from: scannedAt))")
+                                Text("Scanned \(Self.dateText(scannedAt))")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
