@@ -62,6 +62,7 @@ struct ChangesView: View {
     @EnvironmentObject var follows: Follows
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var hub: BrowserHub
+    @EnvironmentObject var postsStore: PostsStore
     @Environment(\.scenePhase) private var scenePhase
 
     private static let defaultKinds: Set<ChangeKind> = Set(ChangeKind.allCases.filter { $0 != .edited })
@@ -205,6 +206,21 @@ struct ChangesView: View {
             .navigationTitle("What's new")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    NavigationLink {
+                        PostsView()
+                    } label: {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "newspaper")
+                            if postsStore.unreadCount > 0 {
+                                Circle()
+                                    .fill(fmhyPurple)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 2, y: -2)
+                            }
+                        }
+                    }
+                    .accessibilityLabel(postsStore.unreadCount > 0 ? "News & posts, \(postsStore.unreadCount) unread" : "News & posts")
+
                     Menu {
                         SwiftUI.Section("Categories") {
                             Picker("Category", selection: $selectedSectionId) {

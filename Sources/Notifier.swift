@@ -10,18 +10,20 @@ enum Notifier {
         let changes: ChangesStore
         let follows: Follows
         let store: WikiStore
+        let posts: PostsStore?
 
-        init(changes: ChangesStore, follows: Follows, store: WikiStore) {
+        init(changes: ChangesStore, follows: Follows, store: WikiStore, posts: PostsStore? = nil) {
             self.changes = changes
             self.follows = follows
             self.store = store
+            self.posts = posts
         }
     }
 
     private(set) static var shared: SharedHolder?
 
-    static func configure(changes: ChangesStore, follows: Follows, store: WikiStore) {
-        self.shared = SharedHolder(changes: changes, follows: follows, store: store)
+    static func configure(changes: ChangesStore, follows: Follows, store: WikiStore, posts: PostsStore? = nil) {
+        self.shared = SharedHolder(changes: changes, follows: follows, store: store, posts: posts)
     }
 
     @discardableResult
@@ -104,6 +106,45 @@ enum Notifier {
         }
     }
 
+    @MainActor
+    static func notifyPostsIfNeeded(posts: PostsStore) async {
+        let nowSec = Int64(Date().timeIntervalSince1970)
+        let lastCheck = posts.lastCheckEpochSec
+        guard NewPostsDecision.shouldCheckPosts(lastCheckEpochSec: lastCheck, nowSec: nowSec) else { return }
+
+        let previousKnown = Set(posts.posts.map { $0.path })
+        let hadReadState = posts.hasReadState
+        await posts.refresh(force: true)
+        posts.recordLastCheck(nowSec)
+
+        guard hadReadState else { return }
+        let newPosts = NewPostsDecision.newUnreadPosts(
+            listed: posts.posts,
+            previouslyKnown: previousKnown,
+            read: posts.readPaths
+        )
+        guard let notif = NewPostsDecision.newPostsNotificationText(newPosts: newPosts) else { return }
+
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = notif.title
+        content.body = notif.body
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "fmhy-post-\(nowSec)",
+            content: content,
+            trigger: nil
+        )
+
+        try? await center.add(request)
+    }
+
     static func registerBackgroundRefresh() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: taskIdentifier, using: nil) { task in
             guard let refreshTask = task as? BGAppRefreshTask else { return }
@@ -136,6 +177,9 @@ enum Notifier {
                 follows: shared.follows,
                 sections: shared.store.sections
             )
+            if let posts = shared.posts {
+                await notifyPostsIfNeeded(posts: posts)
+            }
             task.setTaskCompleted(success: true)
         }
 

@@ -14,6 +14,7 @@ struct SettingsView: View {
     @EnvironmentObject var checkPrefs: CheckPrefs
     @EnvironmentObject var vtSiteChecks: VtSiteChecks
     @EnvironmentObject var siteSettings: SiteSettingsStore
+    @EnvironmentObject var postsStore: PostsStore
 
     @ObservedObject private var adBlocker = AdBlocker.shared
 
@@ -582,6 +583,21 @@ struct SettingsView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fmhyRowBackground()
+
+            NavigationLink {
+                PostsView()
+            } label: {
+                HStack {
+                    Label("News & posts", systemImage: "newspaper")
+                    Spacer()
+                    if postsStore.unreadCount > 0 {
+                        Text("\(postsStore.unreadCount) new")
+                            .font(.footnote)
+                            .foregroundStyle(fmhyPurple)
+                    }
+                }
+            }
+            .fmhyRowBackground()
 
             NavigationLink {
                 LegendView()

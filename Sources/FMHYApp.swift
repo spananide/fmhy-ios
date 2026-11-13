@@ -18,6 +18,7 @@ struct FMHYApp: App {
     @StateObject private var homeLayoutStore = HomeLayoutStore()
     @StateObject private var visitTracker = VisitTracker()
     @StateObject private var siteSettings: SiteSettingsStore
+    @StateObject private var postsStore: PostsStore
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -33,6 +34,7 @@ struct FMHYApp: App {
         let downloadChecks = DownloadChecks(prefs: checkPrefs, store: scanStore)
         let downloadManager = DownloadManager()
         let vtSiteChecks = VtSiteChecks()
+        let postsStore = PostsStore()
         downloadManager.checks = downloadChecks
 
         tabManager.downloadHandler = { download, url in
@@ -50,8 +52,9 @@ struct FMHYApp: App {
         _downloadChecks = StateObject(wrappedValue: downloadChecks)
         _vtSiteChecks = StateObject(wrappedValue: vtSiteChecks)
         _downloads = StateObject(wrappedValue: downloadManager)
+        _postsStore = StateObject(wrappedValue: postsStore)
 
-        Notifier.configure(changes: changesStore, follows: followsStore, store: wikiStore)
+        Notifier.configure(changes: changesStore, follows: followsStore, store: wikiStore, posts: postsStore)
         Notifier.registerBackgroundRefresh()
     }
 
@@ -73,6 +76,7 @@ struct FMHYApp: App {
                 .environmentObject(homeLayoutStore)
                 .environmentObject(visitTracker)
                 .environmentObject(siteSettings)
+                .environmentObject(postsStore)
                 .preferredColorScheme(settings.theme.colorScheme)
                 .tint(settings.accent.color)
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)
@@ -81,6 +85,9 @@ struct FMHYApp: App {
                 }
                 .task {
                     await changes.load()
+                }
+                .task {
+                    await postsStore.load()
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
