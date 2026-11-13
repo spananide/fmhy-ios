@@ -44,19 +44,28 @@ struct DownloadsView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if downloads.items.isEmpty {
-                    ContentUnavailableView("No downloads", systemImage: "arrow.down.circle")
-                } else {
-                    List {
-                        ForEach(downloads.items) { item in
-                            downloadRow(item)
-                        }
+            layerFive
+        }
+    }
+
+    private var listContent: some View {
+        Group {
+            if downloads.items.isEmpty {
+                ContentUnavailableView("No downloads", systemImage: "arrow.down.circle")
+            } else {
+                List {
+                    ForEach(downloads.items) { item in
+                        downloadRow(item)
                     }
-                    .listStyle(.insetGrouped)
-                    .fmhyListStyle()
                 }
+                .listStyle(.insetGrouped)
+                .fmhyListStyle()
             }
+        }
+    }
+
+    private var layerOne: some View {
+        listContent
             .navigationTitle("Downloads")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -118,6 +127,10 @@ struct DownloadsView: View {
                     }
                 }
             }
+    }
+
+    private var layerTwo: some View {
+        layerOne
             .sheet(isPresented: $showDownloadOffer) {
                 DownloadOfferSheet { url in
                     downloads.start(url: url)
@@ -152,6 +165,10 @@ struct DownloadsView: View {
                     ScanResultSheet(result: res, isLink: res.kind == .link)
                 }
             }
+    }
+
+    private var layerThree: some View {
+        layerTwo
             .alert("Risky file", isPresented: $showRiskyAlert, presenting: itemToConfirm) { item in
                 Button("Open anyway") {
                     downloads.confirmRisky(item.id)
@@ -203,6 +220,10 @@ struct DownloadsView: View {
             } message: { _ in
                 Text("This file was flagged as dangerous. It will be moved to your download folder.")
             }
+    }
+
+    private var layerFour: some View {
+        layerThree
             .alert(
                 "Upload for analysis?",
                 isPresented: Binding(
@@ -246,6 +267,10 @@ struct DownloadsView: View {
             } message: {
                 Text("Turn on VirusTotal or Hybrid Analysis and add a free key in settings to check files.")
             }
+    }
+
+    private var layerFive: some View {
+        layerFour
             .alert(
                 "Check risky files automatically?",
                 isPresented: Binding(
@@ -289,7 +314,6 @@ struct DownloadsView: View {
                     pendingCheckChooserItem = nil
                 }
             }
-        }
     }
 
     // MARK: - Row View
@@ -397,7 +421,7 @@ struct DownloadsView: View {
                                 return sr?.verdict == .unknown && sr?.error == nil
                             }) {
                                 Button {
-                                    pendingUpload = (item, unknownService)
+                                    pendingUpload = PendingUploadTarget(item: item, service: unknownService)
                                 } label: {
                                     Text("Upload")
                                 }
@@ -515,7 +539,7 @@ struct DownloadsView: View {
                 showingScanResult = check
             }
         case .upload:
-            pendingUpload = (item, chip.service)
+            pendingUpload = PendingUploadTarget(item: item, service: chip.service)
         case .tooBig:
             pendingUploadTooBigService = chip.service
         case .retry:

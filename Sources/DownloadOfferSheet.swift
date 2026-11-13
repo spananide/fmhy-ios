@@ -154,7 +154,7 @@ public struct DownloadOfferSheet: View {
                                 }
                                 .frame(maxWidth: .infinity)
                             }
-                            .buttonStyle(isRisky ? .borderedProminent : .bordered)
+                            .modifier(CheckButtonProminence(prominent: isRisky))
                             .tint(isRisky ? fmhyPurple : .primary)
                         }
                     } header: {
@@ -244,5 +244,18 @@ public struct DownloadOfferSheet: View {
         guard let url = parsedURL else { return }
         onDownload(url)
         dismiss()
+    }
+}
+
+private struct CheckButtonProminence: ViewModifier {
+    let prominent: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if prominent {
+            content.buttonStyle(.borderedProminent)
+        } else {
+            content.buttonStyle(.bordered)
+        }
     }
 }
