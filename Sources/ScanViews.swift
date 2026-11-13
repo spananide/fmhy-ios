@@ -432,7 +432,8 @@ public struct ScanResultSheet: View {
                 }
                 .fmhyRowBackground()
 
-                ForEach(result.services, id: \.service) { serviceResult in
+                ForEach(Array(result.services.enumerated()), id: \.offset) { entry in
+                    let serviceResult: ServiceResult = entry.element
                     SwiftUI.Section {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(serviceResult.service.label)
