@@ -292,10 +292,9 @@ final class DownloadManager: NSObject, ObservableObject {
         var sha = item.sha256
         if sha == nil {
             do {
-                sha = try await checks?.fingerprint(fileURL: fileURL)
-                    ?? (try await Task.detached(priority: .userInitiated) {
-                        try Self.computeSHA256(for: fileURL)
-                    }.value)
+                sha = try await Task.detached(priority: .userInitiated) {
+                    try Self.computeSHA256(for: fileURL)
+                }.value
                 if let sha = sha {
                     updateSHA256(sha, for: id)
                 }
