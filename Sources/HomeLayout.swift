@@ -108,10 +108,6 @@ struct HomeLayout: Equatable, Sendable {
         entries.filter { $0.enabled }.map { $0.block }
     }
 
-    func enabledBlocks() -> [HomeBlock] {
-        enabledBlocks
-    }
-
     func isEnabled(_ block: HomeBlock) -> Bool {
         entries.first(where: { $0.block == block })?.enabled ?? false
     }
