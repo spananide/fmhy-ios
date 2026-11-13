@@ -18,6 +18,19 @@ targets:
         UIBackgroundModes: [fetch]
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: de.spanani.fmhy.search
+            UIApplicationShortcutItemTitle: Search
+            UIApplicationShortcutItemIconType: UIApplicationShortcutIconTypeSearch
+          - UIApplicationShortcutItemType: de.spanani.fmhy.saved
+            UIApplicationShortcutItemTitle: Saved
+            UIApplicationShortcutItemIconType: UIApplicationShortcutIconTypeBookmark
+          - UIApplicationShortcutItemType: de.spanani.fmhy.check
+            UIApplicationShortcutItemTitle: Check link
+            UIApplicationShortcutItemIconType: UIApplicationShortcutIconTypeConfirmation
+          - UIApplicationShortcutItemType: de.spanani.fmhy.downloads
+            UIApplicationShortcutItemTitle: Downloads
+            UIApplicationShortcutItemIconType: UIApplicationShortcutIconTypeAdd
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.spanani.fmhy

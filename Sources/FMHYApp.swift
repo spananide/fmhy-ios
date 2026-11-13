@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct FMHYApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store: WikiStore
     @StateObject private var bookmarks = Bookmarks()
     @StateObject private var tabs: TabManager
