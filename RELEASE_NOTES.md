@@ -1,10 +1,9 @@
-**What's new in 1.4.0**
-- **VirusTotal and Hybrid Analysis checks**, with your own free keys (Settings > File and link checks): scan links, the site you are on, and downloaded files
-- **Check a link before you download it**, with a clear "Download anyway" warning for dangerous results
-- Optional **hold downloads until checked** and **auto-check risky files**; unknown files can be uploaded for analysis, with a notification when it finishes
-- **Check any file** from your phone, results shown as chips with a full report link
-- Check Link screen: recent checks, live check while typing, paste chip, scan the link with VirusTotal / Hybrid Analysis
-- Clean sites are remembered for 30 days (never in private tabs); "Forget checked sites" in Settings
+**What's new in 1.5.0**
+- **Home screen blocks:** search, new since last visit, random pick (with reroll), pinned categories, new in pinned, favourites, suggestions, sections. Reorder and switch them in Edit
+- **Browser:** long-press link menu (open in new, background or private tab, copy, share), zoom per tab, per-site settings (JavaScript, pop-ups, desktop site, dark page, ad blocking), shield sheet
+- **News & posts** feed with unread markers (open it from What's new or Settings)
+- Icon legend, Following screen, note sheet with "Open on GitHub", report-a-problem sheet
+- Home Screen quick actions: Search, Saved, Check link, Downloads
 
 **Install:** download the `.ipa` below and sideload it with [Sideloadly](https://sideloadly.io), SideStore/AltStore, or on Linux with Sideloader/iloader. Details in the [README](https://github.com/spananide/fmhy-ios#install-free-no-mac-needed).
 

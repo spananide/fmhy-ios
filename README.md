@@ -28,6 +28,9 @@ The official iOS port of [FMHY for Android](https://github.com/omeg4-dev/fmhy-an
 - 🔔 **What's new:** added, removed, starred and moved sites from the last 120 days (feed by omeg4-dev), "NEW" badges, and follow categories to get a notification when new sites arrive (iOS may delay background checks).
 - ⬇️ **Downloads:** files from the browser land in the app's Downloads folder (visible in the Files app) with progress, pause/resume for link downloads, share/preview and a warning before opening risky files (.ipa, .exe, .apk, ...).
 - 🛡️ **File and link checks (optional, your own free keys):** VirusTotal and Hybrid Analysis for downloads, links and the site you are browsing. Check a link before downloading, hold downloads until checked, auto-check risky files, upload unknown files, check any file from your phone. Files are only uploaded when you tap Upload; otherwise just the hash or web address is sent.
+- 🏠 **Home screen blocks:** search, new since last visit, random pick, pinned categories, new in pinned, favourites, suggestions and the sections list. Reorder or hide them with Edit.
+- 🌐 **Browser extras:** long-press link menu (new, background, private tab, copy, share), zoom per tab, per-site settings (JavaScript, pop-ups, desktop, dark page, ad blocking) and a shield sheet.
+- 📰 **News & posts** feed with unread markers, an icon legend, a Following screen, a report-a-problem sheet and Home Screen quick actions (Search, Saved, Check link, Downloads).
 - ⚙️ **Settings:** light/dark/pure-black theme, accent colour, text size, search engine, open links in-app or Safari, ad-block allowlist, Wi-Fi-only refresh, backup and restore of bookmarks and follows.
 - 🔒 No analytics, no servers of mine in between.
 
