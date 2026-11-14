@@ -11,6 +11,13 @@ targets:
       - Assets.xcassets
       - path: Data
         type: folder
+    dependencies:
+      - target: FMHYWidget
+    entitlements:
+      path: Sources/FMHY.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.de.spanani.fmhy
     info:
       path: Info.generated.plist
       properties:
@@ -18,6 +25,10 @@ targets:
         UIBackgroundModes: [fetch]
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
+        CFBundleURLTypes:
+          - CFBundleURLName: de.spanani.fmhy
+            CFBundleURLSchemes:
+              - fmhy
         UIApplicationShortcutItems:
           - UIApplicationShortcutItemType: de.spanani.fmhy.search
             UIApplicationShortcutItemTitle: Search
@@ -39,6 +50,31 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: FMHY
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "1.5.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+  FMHYWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - Widget
+      - path: Sources/WidgetShared.swift
+    info:
+      path: Widget/Info.generated.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widget/FMHYWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.de.spanani.fmhy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.spanani.fmhy.widget
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: FMHY
         MARKETING_VERSION: "1.5.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"

@@ -82,6 +82,7 @@ struct FMHYApp: App {
                 .dynamicTypeSize(settings.textSize.dynamicTypeSize)
                 .task {
                     await store.load()
+                    WidgetBridge.sync(store: store, follows: follows)
                 }
                 .task {
                     await changes.load()

@@ -110,7 +110,44 @@ struct RootView: View {
                     let v = store.safeGuard?.check(url.absoluteString)
                     return v?.status == .unsafe ? (v?.reason ?? "On the FMHY unsafe list") : nil
                 }
+                if !store.entries.isEmpty {
+                    WidgetBridge.sync(store: store, follows: follows)
+                }
             }
+            .onChange(of: follows.sectionIds) { _, _ in
+                if !store.entries.isEmpty {
+                    WidgetBridge.sync(store: store, follows: follows)
+                }
+            }
+            .onOpenURL { url in
+                handleDeepLink(url)
+            }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(),
+              scheme == "fmhy" else {
+            return
+        }
+
+        let action = (components.host ?? components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))).lowercased()
+        switch action {
+        case "search":
+            hub.requestedTab = 1
+        case "open":
+            if let queryItems = components.queryItems,
+               let targetString = queryItems.first(where: { $0.name == "url" })?.value,
+               let targetURL = URL(string: targetString),
+               let targetScheme = targetURL.scheme?.lowercased(),
+               targetScheme == "http" || targetScheme == "https" {
+                hub.open(targetURL)
+            }
+        case "section":
+            hub.requestedTab = 0
+        default:
+            break
+        }
     }
 
     var body: some View {
