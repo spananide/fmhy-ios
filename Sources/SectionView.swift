@@ -121,6 +121,14 @@ struct SectionView: View {
     }
 
     var body: some View {
+        if section.id == "beginners-guide" {
+            ReaderView(path: "beginners-guide.md", title: section.title)
+        } else {
+            regularBody
+        }
+    }
+
+    private var regularBody: some View {
         Group {
             if displayedGroups.isEmpty && !filterText.isEmpty {
                 ContentUnavailableView.search(text: filterText)

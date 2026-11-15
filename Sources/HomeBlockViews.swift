@@ -559,9 +559,11 @@ struct SectionsListBlock: View {
                                         .lineLimit(2)
                                 }
 
-                                Text(siteCount(for: section.id))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                if section.id != "beginners-guide" && (store.sectionCounts[section.id] ?? 0) > 0 {
+                                    Text(siteCount(for: section.id))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                             .padding(.vertical, 2)
 
