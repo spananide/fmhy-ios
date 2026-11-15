@@ -34,7 +34,7 @@ The official iOS port of [FMHY for Android](https://github.com/omeg4-dev/fmhy-an
 - ⚙️ **Settings:** light/dark/pure-black theme, accent colour, text size, search engine, open links in-app or Safari, ad-block allowlist, Wi-Fi-only refresh, backup and restore of bookmarks and follows.
 - 🔒 No analytics, no servers of mine in between.
 
-Not in the iOS version: home-screen widgets (free Apple ID signing makes extensions unreliable), Android-only features (Material You, shortcuts).
+Not in the iOS version: home-screen widgets (free Apple ID signing makes extensions unreliable), Android-only features (Material You).
 
 ## Install (free, no Mac needed)
 The app is not on the App Store, so you sideload the `.ipa` from [Releases](https://github.com/spananide/fmhy-ios/releases/latest).
