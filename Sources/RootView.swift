@@ -145,6 +145,21 @@ struct RootView: View {
             }
         case "section":
             hub.requestedTab = 0
+        case "check":
+            if let target = UrlExtractor.parseCheckURL(url) {
+                shortcuts.pendingCheckInput = target
+                if shortcuts.activeSheet == .checkLink {
+                    shortcuts.activeSheet = nil
+                    DispatchQueue.main.async {
+                        self.shortcuts.activeSheet = .checkLink
+                    }
+                } else {
+                    shortcuts.activeSheet = .checkLink
+                }
+            } else if components.queryItems?.first(where: { $0.name == "url" }) == nil {
+                shortcuts.pendingCheckInput = nil
+                shortcuts.activeSheet = .checkLink
+            }
         default:
             break
         }
@@ -158,12 +173,15 @@ struct RootView: View {
     private func sheetContent(for destination: RootSheetDestination) -> some View {
         switch destination {
         case .checkLink:
-            CheckLinkSheetContainer()
+            CheckLinkSheetContainer(initialInput: shortcuts.pendingCheckInput)
                 .environmentObject(store)
                 .environmentObject(downloadChecks)
                 .environmentObject(vtSiteChecks)
                 .environmentObject(bookmarks)
                 .environmentObject(hub)
+                .onAppear {
+                    shortcuts.pendingCheckInput = nil
+                }
         case .downloads:
             DownloadsView()
                 .environmentObject(downloads)
@@ -175,9 +193,14 @@ struct RootView: View {
 
 private struct CheckLinkSheetContainer: View {
     @Environment(\.dismiss) private var dismiss
+    let initialInput: String?
+
+    init(initialInput: String? = nil) {
+        self.initialInput = initialInput
+    }
 
     var body: some View {
-        CheckLinkView()
+        CheckLinkView(initialInput: initialInput)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {

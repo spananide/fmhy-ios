@@ -13,6 +13,7 @@ targets:
         type: folder
     dependencies:
       - target: FMHYWidget
+      - target: FMHYShare
     entitlements:
       path: Sources/FMHY.entitlements
       properties:
@@ -73,6 +74,30 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: de.spanani.fmhy.widget
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: FMHY
+        MARKETING_VERSION: "1.5.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+  FMHYShare:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - ShareExtension
+    info:
+      path: ShareExtension/Info.generated.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.spanani.fmhy.share
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: FMHY
         MARKETING_VERSION: "1.5.0"

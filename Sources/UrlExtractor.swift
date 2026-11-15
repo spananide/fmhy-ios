@@ -199,4 +199,55 @@ enum UrlExtractor {
         }
         return res
     }
+
+    // MARK: - Share Deep Link Helpers
+
+    nonisolated static func buildCheckURL(for rawURL: String) -> URL? {
+        let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let lower = trimmed.lowercased()
+        guard lower.hasPrefix("http://") || lower.hasPrefix("https://") else {
+            return nil
+        }
+
+        let prefixLength = lower.hasPrefix("https://") ? 8 : 7
+        let afterPrefix = trimmed.dropFirst(prefixLength)
+        guard !afterPrefix.isEmpty else { return nil }
+
+        var components = URLComponents()
+        components.scheme = "fmhy"
+        components.host = "check"
+        components.queryItems = [URLQueryItem(name: "url", value: trimmed)]
+        return components.url
+    }
+
+    nonisolated static func parseCheckURL(_ url: URL) -> String? {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(),
+              scheme == "fmhy" else {
+            return nil
+        }
+
+        let action = (components.host ?? components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))).lowercased()
+        guard action == "check" else { return nil }
+
+        guard let target = components.queryItems?.first(where: { $0.name == "url" })?.value else {
+            return nil
+        }
+
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let lower = trimmed.lowercased()
+        guard lower.hasPrefix("http://") || lower.hasPrefix("https://") else {
+            return nil
+        }
+
+        let prefixLength = lower.hasPrefix("https://") ? 8 : 7
+        let afterPrefix = trimmed.dropFirst(prefixLength)
+        guard !afterPrefix.isEmpty else { return nil }
+
+        return trimmed
+    }
 }

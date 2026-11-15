@@ -8,7 +8,9 @@ struct CheckLinkView: View {
     @EnvironmentObject var vtSiteChecks: VtSiteChecks
     @Environment(\.openURL) private var openURL
 
-    @State private var urlInput = ""
+    private let initialInput: String?
+
+    @State private var urlInput: String
     @State private var currentVerdict: Verdict?
     @State private var selectedEntry: Entry?
     @State private var recentChecks: [RecentCheck] = []
@@ -21,6 +23,16 @@ struct CheckLinkView: View {
     @State private var isSubmittingLink = false
     @State private var showingScanSheet = false
     @State private var showSubmitConfirm = false
+
+    init(initialInput: String? = nil) {
+        self.initialInput = initialInput
+        let trimmed = initialInput?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty {
+            _urlInput = State(initialValue: trimmed)
+        } else {
+            _urlInput = State(initialValue: "")
+        }
+    }
 
     private var hasReadyServices: Bool {
         !downloadChecks.prefs.readyServices.isEmpty
@@ -494,7 +506,17 @@ struct CheckLinkView: View {
         }
         .onAppear {
             loadRecentChecks()
-            checkClipboard()
+            if let initial = initialInput?.trimmingCharacters(in: .whitespacesAndNewlines), !initial.isEmpty {
+                runImmediateCheck(initial)
+            } else {
+                checkClipboard()
+            }
+        }
+        .onChange(of: store.entries.count) { _, _ in
+            let trimmed = urlInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            if currentVerdict == nil && !trimmed.isEmpty {
+                runImmediateCheck(trimmed)
+            }
         }
     }
 

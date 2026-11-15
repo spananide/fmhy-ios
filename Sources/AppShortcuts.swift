@@ -25,6 +25,7 @@ enum RootSheetDestination: Identifiable {
     static let shared = AppShortcuts()
 
     @Published var activeSheet: RootSheetDestination?
+    @Published var pendingCheckInput: String?
 
     weak var hub: BrowserHub? {
         didSet {
@@ -79,6 +80,7 @@ enum RootSheetDestination: Identifiable {
             }
             return true
         case .check:
+            pendingCheckInput = nil
             activeSheet = .checkLink
             return true
         case .downloads:
