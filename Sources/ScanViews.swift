@@ -381,6 +381,7 @@ public struct ScanResultSheet: View {
     public let result: ScanResult
     public var isLink: Bool = false
     @Environment(\.dismiss) private var dismiss
+    @State private var reportTarget: SafariTarget?
 
     public init(result: ScanResult, isLink: Bool = false) {
         self.result = result
@@ -427,11 +428,14 @@ public struct ScanResultSheet: View {
                                     .foregroundStyle(.secondary)
                             }
 
-                            if let reportUrl = serviceResult.reportUrl, let url = URL(string: reportUrl) {
-                                SwiftUI.Link("Full report", destination: url)
-                                    .font(.subheadline.weight(.semibold))
-                                    .tint(fmhyPurple)
-                                    .padding(.top, 2)
+                            if let reportUrl = serviceResult.reportUrl, let url = URL(string: reportUrl),
+                               serviceResult.verdict != .unknown || serviceResult.error != nil {
+                                Button("Full report") {
+                                    reportTarget = SafariTarget(url: url)
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .tint(fmhyPurple)
+                                .padding(.top, 2)
                             }
                         }
                         .padding(.vertical, 4)
@@ -488,6 +492,10 @@ public struct ScanResultSheet: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(item: $reportTarget) { target in
+                SafariView(url: target.url)
+                    .ignoresSafeArea()
             }
         }
     }

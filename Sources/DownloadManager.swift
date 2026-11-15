@@ -697,7 +697,7 @@ final class DownloadManager: NSObject, ObservableObject {
             items[idx].state = .cancelled
         } else {
             items[idx].state = .failed
-            items[idx].errorMessage = error.localizedDescription
+            items[idx].errorMessage = "\(error.localizedDescription) (\(nsError.code))"
         }
         save()
 
