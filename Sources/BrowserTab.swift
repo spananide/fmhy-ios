@@ -385,6 +385,9 @@ struct BlockedNavigation: Identifiable, Equatable {
         }
     }
 
+    // Experiment: iOS 27.2 beta crashed in UIKit gesture code on link long-press, so use WebKit's own menu.
+    static let customLinkMenu = false
+
     nonisolated static func hasRealAddress(_ url: URL?) -> Bool {
         guard let url = url else { return false }
         let raw = url.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -401,7 +404,7 @@ struct BlockedNavigation: Identifiable, Equatable {
         contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
         completionHandler: @escaping (UIContextMenuConfiguration?) -> Void
     ) {
-        guard let linkURL = elementInfo.linkURL, Self.hasRealAddress(linkURL) else {
+        guard Self.customLinkMenu, let linkURL = elementInfo.linkURL, Self.hasRealAddress(linkURL) else {
             completionHandler(nil)
             return
         }
