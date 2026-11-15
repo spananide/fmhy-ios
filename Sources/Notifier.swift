@@ -1,6 +1,7 @@
 import Foundation
 import UserNotifications
 import BackgroundTasks
+import UIKit
 
 enum Notifier {
     static let taskIdentifier = "de.spanani.fmhy.refresh"
@@ -191,6 +192,25 @@ enum Notifier {
     // MARK: - Scan Notifications
 
     static func postScanFinished(title: String, body: String) {
+        postNotification(identifierPrefix: "fmhy-scan", title: title, body: body)
+    }
+
+    // MARK: - Download Notifications
+
+    @MainActor
+    static func postDownloadFinished(fileName: String, awaitingDecision: Bool = false) {
+        guard UIApplication.shared.applicationState != .active else { return }
+        let title = awaitingDecision ? "Download waiting for your decision" : "Download finished"
+        postNotification(identifierPrefix: "fmhy-download", title: title, body: fileName)
+    }
+
+    @MainActor
+    static func postDownloadFailed(fileName: String) {
+        guard UIApplication.shared.applicationState != .active else { return }
+        postNotification(identifierPrefix: "fmhy-download", title: "Download failed", body: fileName)
+    }
+
+    private static func postNotification(identifierPrefix: String, title: String, body: String) {
         Task {
             let center = UNUserNotificationCenter.current()
             let settings = await center.notificationSettings()
@@ -204,7 +224,7 @@ enum Notifier {
             content.sound = .default
 
             let request = UNNotificationRequest(
-                identifier: "fmhy-scan-\(UUID().uuidString)",
+                identifier: "\(identifierPrefix)-\(UUID().uuidString)",
                 content: content,
                 trigger: nil
             )

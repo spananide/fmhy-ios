@@ -652,12 +652,27 @@ struct DownloadsView: View {
             return "Queued"
         case .downloading:
             let receivedStr = ByteCountFormatter.string(fromByteCount: item.bytesReceived, countStyle: .file)
+            let speedStr = downloads.speedTexts[item.id]
+            let etaStr = downloads.etaTexts[item.id]
             if item.bytesTotal > 0 {
                 let totalStr = ByteCountFormatter.string(fromByteCount: item.bytesTotal, countStyle: .file)
-                let percent = Int(Double(item.bytesReceived) / Double(item.bytesTotal) * 100)
-                return "\(receivedStr) of \(totalStr) · \(percent)%"
+                var parts: [String] = ["\(receivedStr) of \(totalStr)"]
+                if let speed = speedStr, !speed.isEmpty {
+                    parts.append(speed)
+                    if let eta = etaStr, !eta.isEmpty {
+                        parts.append(eta)
+                    }
+                } else {
+                    let percent = Int(Double(item.bytesReceived) / Double(item.bytesTotal) * 100)
+                    parts.append("\(percent)%")
+                }
+                return parts.joined(separator: " · ")
             } else {
-                return "\(receivedStr) · downloading"
+                if let speed = speedStr, !speed.isEmpty {
+                    return "\(receivedStr) · \(speed)"
+                } else {
+                    return "\(receivedStr) · downloading"
+                }
             }
         case .checking:
             return "Being checked"

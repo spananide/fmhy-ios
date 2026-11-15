@@ -67,12 +67,17 @@ struct DownloadItem: Codable, Identifiable, Hashable, Sendable {
 final class DownloadManager: NSObject, ObservableObject {
     @Published private(set) var items: [DownloadItem] = []
     @Published var keyPromptItem: UUID?
+    @Published var speedTexts: [UUID: String] = [:]
+    @Published var speedBps: [UUID: Int64] = [:]
+    @Published var etaTexts: [UUID: String] = [:]
 
     var checks: DownloadChecks?
 
     var activeCount: Int {
         items.filter { $0.state == .downloading || $0.state == .queued || $0.state == .checking }.count
     }
+
+    private var speedMeters: [UUID: SpeedMeter] = [:]
 
     private var activeWebDownloads: [UUID: WKDownload] = [:]
     private var webDelegates: [UUID: WebDownloadDelegate] = [:]
@@ -450,10 +455,38 @@ final class DownloadManager: NSObject, ObservableObject {
         return destURL
     }
 
+    private func recordProgressSpeed(for itemId: UUID, received: Int64, total: Int64) {
+        var meter = speedMeters[itemId] ?? SpeedMeter()
+        meter.sample(totalBytes: received, nowMs: Int64(Date().timeIntervalSince1970 * 1000))
+        speedMeters[itemId] = meter
+        if let bps = meter.bytesPerSecond {
+            speedBps[itemId] = bps
+            speedTexts[itemId] = SpeedMeter.formatSpeed(bps)
+            if total > 0 && received < total {
+                let remaining = total - received
+                if let eta = meter.etaSeconds(remainingBytes: remaining), let etaFormatted = SpeedMeter.formatEta(eta) {
+                    etaTexts[itemId] = etaFormatted
+                } else {
+                    etaTexts.removeValue(forKey: itemId)
+                }
+            } else {
+                etaTexts.removeValue(forKey: itemId)
+            }
+        }
+    }
+
+    private func clearSpeed(for itemId: UUID) {
+        speedMeters.removeValue(forKey: itemId)
+        speedTexts.removeValue(forKey: itemId)
+        speedBps.removeValue(forKey: itemId)
+        etaTexts.removeValue(forKey: itemId)
+    }
+
     func updateProgress(for itemId: UUID, received: Int64, total: Int64) {
         guard let idx = items.firstIndex(where: { $0.id == itemId }) else { return }
         items[idx].bytesReceived = received
         items[idx].bytesTotal = total
+        recordProgressSpeed(for: itemId, received: received, total: total)
     }
 
     func handleDownloadDidFinish(for itemId: UUID) {
@@ -473,8 +506,13 @@ final class DownloadManager: NSObject, ObservableObject {
         activeWebDownloads.removeValue(forKey: itemId)
         webDelegates.removeValue(forKey: itemId)
         removeResumeData(for: itemId)
+        clearSpeed(for: itemId)
 
         runAfterDownloadPolicy(for: itemId)
+
+        let item = items[idx]
+        let awaitingDecision = item.state == .awaitingDecision || item.state == .checking
+        Notifier.postDownloadFinished(fileName: item.fileName, awaitingDecision: awaitingDecision)
     }
 
     func handleDownloadDidFail(for itemId: UUID, error: Error, resumeData: Data?) {
@@ -487,6 +525,7 @@ final class DownloadManager: NSObject, ObservableObject {
         if items[idx].state == .paused {
             activeWebDownloads.removeValue(forKey: itemId)
             webDelegates.removeValue(forKey: itemId)
+            clearSpeed(for: itemId)
             return
         }
 
@@ -498,8 +537,10 @@ final class DownloadManager: NSObject, ObservableObject {
         } else {
             items[idx].state = .failed
             items[idx].errorMessage = error.localizedDescription
+            Notifier.postDownloadFailed(fileName: items[idx].fileName)
         }
         save()
+        clearSpeed(for: itemId)
 
         activeWebDownloads.removeValue(forKey: itemId)
         webDelegates.removeValue(forKey: itemId)
@@ -549,6 +590,7 @@ final class DownloadManager: NSObject, ObservableObject {
                         self.save()
                     }
                     self.activeTasks.removeValue(forKey: item.id)
+                    self.clearSpeed(for: item.id)
                 }
             })
         } else if let download = activeWebDownloads[item.id] {
@@ -563,6 +605,7 @@ final class DownloadManager: NSObject, ObservableObject {
                         self.save()
                     }
                     self.activeWebDownloads.removeValue(forKey: item.id)
+                    self.clearSpeed(for: item.id)
                 }
             }
         }
@@ -606,6 +649,7 @@ final class DownloadManager: NSObject, ObservableObject {
         }
         removeResumeData(for: item.id)
         webDelegates.removeValue(forKey: item.id)
+        clearSpeed(for: item.id)
 
         if let idx = items.firstIndex(where: { $0.id == item.id }) {
             items[idx].state = .cancelled
@@ -665,8 +709,13 @@ final class DownloadManager: NSObject, ObservableObject {
         activeTasks.removeValue(forKey: itemId)
         taskToItemId.removeValue(forKey: taskId)
         removeResumeData(for: itemId)
+        clearSpeed(for: itemId)
 
         runAfterDownloadPolicy(for: itemId)
+
+        let item = items[idx]
+        let awaitingDecision = item.state == .awaitingDecision || item.state == .checking
+        Notifier.postDownloadFinished(fileName: item.fileName, awaitingDecision: awaitingDecision)
     }
 
     func handleURLTaskProgress(taskId: Int, received: Int64, total: Int64) {
@@ -676,6 +725,7 @@ final class DownloadManager: NSObject, ObservableObject {
         }
         items[idx].bytesReceived = received
         items[idx].bytesTotal = total
+        recordProgressSpeed(for: itemId, received: received, total: total)
     }
 
     func handleURLTaskFailed(taskId: Int, error: Error) {
@@ -687,6 +737,7 @@ final class DownloadManager: NSObject, ObservableObject {
         if items[idx].state == .paused {
             activeTasks.removeValue(forKey: itemId)
             taskToItemId.removeValue(forKey: taskId)
+            clearSpeed(for: itemId)
             return
         }
 
@@ -698,8 +749,10 @@ final class DownloadManager: NSObject, ObservableObject {
         } else {
             items[idx].state = .failed
             items[idx].errorMessage = "\(error.localizedDescription) (\(nsError.code))"
+            Notifier.postDownloadFailed(fileName: items[idx].fileName)
         }
         save()
+        clearSpeed(for: itemId)
 
         activeTasks.removeValue(forKey: itemId)
         taskToItemId.removeValue(forKey: taskId)

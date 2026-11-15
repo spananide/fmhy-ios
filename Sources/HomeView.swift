@@ -54,7 +54,11 @@ struct HomeView: View {
             contentList
                 .navigationTitle("FMHY")
                 .navigationDestination(for: WikiSection.self) { section in
-                    SectionView(section: section)
+                    if section.id == "beginners-guide" {
+                        ReaderView(path: "beginners-guide.md", title: section.title)
+                    } else {
+                        SectionView(section: section)
+                    }
                 }
                 .toolbar {
                     leadingToolbar
