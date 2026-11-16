@@ -1,6 +1,16 @@
 import SwiftUI
 
-let fmhyPurple = Color(red: 0.65, green: 0.19, blue: 0.95)
+struct TagLabel: View {
+    let text: String
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.tint.opacity(0.15), in: Capsule())
+    }
+}
 
 struct FMHYListStyle: ViewModifier {
     @EnvironmentObject var settings: AppSettings
@@ -72,39 +82,6 @@ enum SectionLayout {
             }
         }
         return result
-    }
-}
-
-func sectionEmoji(_ id: String) -> String {
-    switch id.lowercased() {
-    case "privacy": return "📛"
-    case "ai": return "🤖"
-    case "video": return "📺"
-    case "audio": return "🎵"
-    case "gaming": return "🎮"
-    case "reading": return "📗"
-    case "downloading": return "💾"
-    case "torrenting": return "🌀"
-    case "educational": return "🧠"
-    case "mobile": return "📱"
-    case "linux-macos": return "🐧"
-    case "non-english": return "🌍"
-    case "misc": return "📁"
-    case "system-tools": return "💻"
-    case "file-tools": return "🗃️"
-    case "internet-tools": return "📎"
-    case "social-media-tools": return "💬"
-    case "text-tools": return "📝"
-    case "gaming-tools": return "👾"
-    case "image-tools": return "📷"
-    case "video-tools": return "📼"
-    case "audio-tools": return "🔊"
-    case "educational-tools": return "🍎"
-    case "developer-tools": return "🧑💻"
-    case "beginners-guide": return "📖"
-    case "storage": return "🗄️"
-    case "unsafe": return "⚠️"
-    default: return "📄"
     }
 }
 

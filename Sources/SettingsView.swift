@@ -353,7 +353,6 @@ struct SettingsView: View {
 
             SwiftUI.Link("Get a VirusTotal key", destination: URL(string: "https://www.virustotal.com/gui/my-apikey")!)
                 .font(.footnote)
-                .tint(fmhyPurple)
                 .fmhyRowBackground()
 
             Toggle("Hybrid Analysis", isOn: $checkPrefs.haEnabled)
@@ -386,7 +385,6 @@ struct SettingsView: View {
 
             SwiftUI.Link("Get a Hybrid Analysis key", destination: URL(string: "https://hybrid-analysis.com/my-account?tab=%23api-key-tab")!)
                 .font(.footnote)
-                .tint(fmhyPurple)
                 .fmhyRowBackground()
 
             Toggle("Hold downloads until checked", isOn: $checkPrefs.hold)
@@ -593,7 +591,7 @@ struct SettingsView: View {
                     if postsStore.unreadCount > 0 {
                         Text("\(postsStore.unreadCount) new")
                             .font(.footnote)
-                            .foregroundStyle(fmhyPurple)
+                            .foregroundStyle(.tint)
                     }
                 }
             }

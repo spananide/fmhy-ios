@@ -53,7 +53,7 @@ enum AccentChoice: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
-        case .purple: return Color(red: 0.65, green: 0.19, blue: 0.95)
+        case .purple: return Color("AccentColor")
         case .blue: return .blue
         case .green: return .green
         case .orange: return .orange

@@ -151,7 +151,7 @@ struct PostListRow: View {
         HStack(alignment: .center, spacing: 10) {
             if isUnread {
                 Circle()
-                    .fill(fmhyPurple)
+                    .fill(.tint)
                     .frame(width: 8, height: 8)
             }
 

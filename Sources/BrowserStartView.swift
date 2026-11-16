@@ -23,7 +23,7 @@ struct BrowserStartView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "safari")
                         .font(.system(size: 48))
-                        .foregroundStyle(fmhyPurple)
+                        .foregroundStyle(.tint)
 
                     Text("Browser")
                         .font(.title.bold())
@@ -71,7 +71,7 @@ struct BrowserStartView: View {
                                         HStack {
                                             Image(systemName: entry.tier >= 1 ? "star.fill" : "bookmark.fill")
                                                 .font(.caption)
-                                                .foregroundStyle(entry.tier >= 1 ? .yellow : fmhyPurple)
+                                                .foregroundStyle(entry.tier >= 1 ? .yellow : Color.accentColor)
                                             Spacer()
                                         }
 

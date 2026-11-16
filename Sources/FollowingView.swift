@@ -4,7 +4,7 @@ import UIKit
 struct FollowedSectionItem: Identifiable {
     let id: String
     let title: String
-    let emoji: String
+    let symbol: String
     let siteCount: Int
     let newCount: Int
     let section: WikiSection?
@@ -26,7 +26,7 @@ struct FollowingView: View {
             return FollowedSectionItem(
                 id: id,
                 title: title,
-                emoji: sectionEmoji(id),
+                symbol: sectionSymbol(id),
                 siteCount: count,
                 newCount: newCnt,
                 section: sec
@@ -132,8 +132,10 @@ struct FollowingView: View {
 
     private func rowContent(for item: FollowedSectionItem) -> some View {
         HStack(spacing: 12) {
-            Text(item.emoji)
+            Image(systemName: item.symbol)
                 .font(.title3)
+                .foregroundStyle(.tint)
+                .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
@@ -148,13 +150,7 @@ struct FollowingView: View {
             Spacer()
 
             if item.newCount > 0 {
-                Text("+\(item.newCount) new")
-                    .font(.caption2.bold())
-                    .foregroundStyle(fmhyPurple)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(fmhyPurple.opacity(0.15))
-                    .clipShape(Capsule())
+                TagLabel(text: "+\(item.newCount) new")
             }
         }
         .padding(.vertical, 2)

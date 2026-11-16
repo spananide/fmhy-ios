@@ -36,13 +36,7 @@ struct EntryRow: View {
                             .foregroundStyle(.primary)
 
                         if changes.isRecentlyAdded(url: entry.url) {
-                            Text("NEW")
-                                .font(.caption2.bold())
-                                .foregroundStyle(fmhyPurple)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(fmhyPurple.opacity(0.15))
-                                .clipShape(Capsule())
+                            TagLabel(text: "NEW")
                         }
                     }
 

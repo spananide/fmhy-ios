@@ -344,11 +344,9 @@ struct DownloadsView: View {
                         if item.bytesTotal > 0 {
                             ProgressView(value: Double(item.bytesReceived), total: Double(item.bytesTotal))
                                 .progressViewStyle(.linear)
-                                .tint(fmhyPurple)
                         } else {
                             ProgressView()
                                 .progressViewStyle(.linear)
-                                .tint(fmhyPurple)
                         }
                     }
 
@@ -399,7 +397,6 @@ struct DownloadsView: View {
                                     Text("Keep")
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(fmhyPurple)
 
                                 Button(role: .destructive) {
                                     downloads.delete(item)
@@ -437,7 +434,6 @@ struct DownloadsView: View {
                                 .font(.caption.weight(.medium))
                         }
                         .buttonStyle(.bordered)
-                        .tint(fmhyPurple)
                         .padding(.top, 2)
                     }
                 }
@@ -638,7 +634,7 @@ struct DownloadsView: View {
         case .failed:
             return .red
         case .downloading:
-            return fmhyPurple
+            return Color.accentColor
         case .paused:
             return .orange
         case .queued, .cancelled:

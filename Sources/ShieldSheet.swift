@@ -84,7 +84,7 @@ struct ShieldSheet: View {
                 HStack(spacing: 12) {
                     Image(systemName: shieldSymbolName)
                         .font(.system(size: 28))
-                        .foregroundStyle(isBlockingOnThisSite ? fmhyPurple : .secondary)
+                        .foregroundStyle(isBlockingOnThisSite ? Color.accentColor : .secondary)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(displayHost)

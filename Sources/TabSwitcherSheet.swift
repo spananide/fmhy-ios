@@ -89,13 +89,7 @@ struct TabSwitcherSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         if tab.isPrivate {
-                            Text("Private")
-                                .font(.caption2.bold())
-                                .foregroundStyle(.purple)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.purple.opacity(0.15))
-                                .clipShape(Capsule())
+                            TagLabel(text: "Private")
                         }
                         Spacer()
                     }
@@ -120,7 +114,7 @@ struct TabSwitcherSheet: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(
-                            tab.id == tabs.selectedId ? fmhyPurple : Color(.separator).opacity(0.4),
+                            tab.id == tabs.selectedId ? Color.accentColor : Color(.separator).opacity(0.4),
                             lineWidth: tab.id == tabs.selectedId ? 2 : 1
                         )
                 )

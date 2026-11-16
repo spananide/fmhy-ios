@@ -543,9 +543,10 @@ struct SectionsListBlock: View {
                 ForEach(group.sections) { section in
                     NavigationLink(value: section) {
                         HStack(spacing: 12) {
-                            Text(sectionEmoji(section.id))
-                                .font(.system(size: 28))
-                                .frame(width: 34, alignment: .center)
+                            Image(systemName: sectionSymbol(section.id))
+                                .font(.title3)
+                                .foregroundStyle(.tint)
+                                .frame(width: 32)
 
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(section.title)

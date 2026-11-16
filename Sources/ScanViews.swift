@@ -434,7 +434,6 @@ public struct ScanResultSheet: View {
                                     reportTarget = SafariTarget(url: url)
                                 }
                                 .font(.subheadline.weight(.semibold))
-                                .tint(fmhyPurple)
                                 .padding(.top, 2)
                             }
                         }

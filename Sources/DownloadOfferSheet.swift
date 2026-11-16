@@ -155,7 +155,7 @@ public struct DownloadOfferSheet: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .modifier(CheckButtonProminence(prominent: isRisky))
-                            .tint(isRisky ? fmhyPurple : .primary)
+                            .tint(isRisky ? Color.accentColor : .primary)
                         }
                     } header: {
                         Text("Safety Check")
@@ -185,7 +185,6 @@ public struct DownloadOfferSheet: View {
                                 .fontWeight(.semibold)
                         }
                         .disabled(parsedURL == nil)
-                        .tint(fmhyPurple)
                     }
 
                     Button("Cancel", role: .cancel) {

@@ -67,7 +67,6 @@ struct BrowserView: View {
             if let selected = tabs.selected, selected.isLoading {
                 ProgressView(value: selected.progress)
                     .progressViewStyle(.linear)
-                    .tint(fmhyPurple)
                     .frame(height: 2)
             } else {
                 Divider()
@@ -210,13 +209,7 @@ struct BrowserView: View {
 
             HStack(spacing: 6) {
                 if tabs.selected?.isPrivate == true {
-                    Text("Private")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.purple)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.purple.opacity(0.15))
-                        .clipShape(Capsule())
+                    TagLabel(text: "Private")
                 }
 
                 TextField("Search or enter address", text: $addressText)

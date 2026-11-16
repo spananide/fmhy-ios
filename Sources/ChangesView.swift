@@ -213,7 +213,7 @@ struct ChangesView: View {
                             Image(systemName: "newspaper")
                             if postsStore.unreadCount > 0 {
                                 Circle()
-                                    .fill(fmhyPurple)
+                                    .fill(.tint)
                                     .frame(width: 8, height: 8)
                                     .offset(x: 2, y: -2)
                             }

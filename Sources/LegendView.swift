@@ -77,13 +77,7 @@ struct LegendView: View {
                 title: "Recently added",
                 subtitle: "New entry added in the latest wiki updates"
             ) {
-                Text("NEW")
-                    .font(.caption2.bold())
-                    .foregroundStyle(fmhyPurple)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(fmhyPurple.opacity(0.15))
-                    .clipShape(Capsule())
+                TagLabel(text: "NEW")
             }
             .fmhyRowBackground()
         }

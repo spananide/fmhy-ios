@@ -59,7 +59,7 @@ struct NoteSheet: View {
         HStack(spacing: 12) {
             Image(systemName: "info.circle.fill")
                 .font(.title2)
-                .foregroundStyle(fmhyPurple)
+                .foregroundStyle(.tint)
 
             Text("Section Note")
                 .font(.headline)
