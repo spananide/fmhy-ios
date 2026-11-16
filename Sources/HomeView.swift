@@ -134,33 +134,26 @@ struct HomeView: View {
 
     private var footerSection: some View {
         SwiftUI.Section {
-            EmptyView()
+            NavigationLink {
+                LegendView()
+            } label: {
+                Label("Icon legend", systemImage: "questionmark.circle")
+            }
+            .fmhyRowBackground()
+
+            Button {
+                showReportSheet = true
+            } label: {
+                Label("Report a problem", systemImage: "exclamationmark.bubble")
+            }
+            .fmhyRowBackground()
         } footer: {
-            VStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 if let error = store.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.red)
+                    Text(error).foregroundStyle(.red)
                 }
                 Text(footerText)
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 12) {
-                    NavigationLink {
-                        LegendView()
-                    } label: {
-                        Text("Icon legend")
-                    }
-
-                    Text("·")
-                        .foregroundStyle(.secondary)
-
-                    Button("Report a problem") {
-                        showReportSheet = true
-                    }
-                }
             }
-            .font(.footnote)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.top, 8)
         }
     }
 

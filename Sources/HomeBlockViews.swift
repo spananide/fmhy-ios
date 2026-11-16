@@ -21,16 +21,12 @@ struct SearchBlockView: View {
     var body: some View {
         SwiftUI.Section {
             Button(action: onSearch) {
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(settings.accent.color)
+                Label {
                     Text(searchText)
-                        .font(.body)
                         .foregroundStyle(.secondary)
-                    Spacer()
+                } icon: {
+                    Image(systemName: "magnifyingglass")
                 }
-                .padding(.vertical, 4)
             }
             .fmhyRowBackground()
         } header: {
@@ -55,19 +51,8 @@ struct NewSinceBlockView: View {
         if count > 0 {
             SwiftUI.Section {
                 Button(action: onOpen) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "sparkles")
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(settings.accent.color)
-                        Text(newSinceText)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 3)
+                    Label(newSinceText, systemImage: "sparkles")
+                        .foregroundStyle(.primary)
                 }
                 .fmhyRowBackground()
             }
@@ -156,8 +141,7 @@ struct RandomPickBlockView: View {
                         Button {
                             chooseRandomPick()
                         } label: {
-                            Label("Another one", systemImage: "arrow.clockwise")
-                                .font(.caption.weight(.medium))
+                            Label("Shuffle", systemImage: "shuffle")
                         }
                         .buttonStyle(.bordered)
                         .tint(settings.accent.color)
@@ -170,7 +154,6 @@ struct RandomPickBlockView: View {
                             }
                         } label: {
                             Label("Open", systemImage: "safari")
-                                .font(.caption.weight(.medium))
                         }
                         .buttonStyle(.bordered)
 
@@ -178,10 +161,10 @@ struct RandomPickBlockView: View {
                             bookmarks.toggle(entry.id)
                         } label: {
                             Image(systemName: isSaved(entry.id) ? "bookmark.fill" : "bookmark")
-                                .font(.caption.weight(.medium))
                         }
                         .buttonStyle(.bordered)
                         .tint(isSaved(entry.id) ? .yellow : .primary)
+                        .accessibilityLabel(isSaved(entry.id) ? "Remove from saved" : "Save")
                     }
                     .padding(.top, 2)
                 }
@@ -206,12 +189,6 @@ struct RandomPickBlockView: View {
     }
 }
 
-struct PinnedSectionPair: Identifiable {
-    let id: String
-    let first: WikiSection
-    let second: WikiSection?
-}
-
 struct PinnedBlockView: View {
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var follows: Follows
@@ -221,37 +198,12 @@ struct PinnedBlockView: View {
         store.sections.filter { follows.isFollowing($0.id) }
     }
 
-    private var pairs: [PinnedSectionPair] {
-        Self.makePairs(pinnedSections)
-    }
-
-    nonisolated static func makePairs(_ list: [WikiSection]) -> [PinnedSectionPair] {
-        var result: [PinnedSectionPair] = []
-        var i = 0
-        while i < list.count {
-            let first = list[i]
-            let second = (i + 1 < list.count) ? list[i + 1] : nil
-            let pairId = "\(first.id)_\(second?.id ?? "")"
-            result.append(PinnedSectionPair(id: pairId, first: first, second: second))
-            i += 2
-        }
-        return result
-    }
-
     var body: some View {
         if !pinnedSections.isEmpty {
             SwiftUI.Section {
-                ForEach(pairs) { pair in
-                    HStack(spacing: 8) {
-                        PinnedTile(section: pair.first)
-                        if let second = pair.second {
-                            PinnedTile(section: second)
-                        } else {
-                            Spacer()
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .fmhyRowBackground()
+                ForEach(pinnedSections) { section in
+                    PinnedTile(section: section)
+                        .fmhyRowBackground()
                 }
             } header: {
                 HStack {
@@ -262,7 +214,6 @@ struct PinnedBlockView: View {
                     } label: {
                         Text("Manage")
                             .font(.subheadline)
-                            .foregroundStyle(settings.accent.color)
                     }
                 }
             }
@@ -277,25 +228,8 @@ struct PinnedTile: View {
 
     var body: some View {
         NavigationLink(value: section) {
-            HStack(spacing: 8) {
-                Image(systemName: sectionSymbol(section.id))
-                    .font(.subheadline)
-                    .foregroundStyle(settings.accent.color)
-                    .frame(width: 20)
-
-                Text(section.title)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-                    .foregroundStyle(.primary)
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            Label(section.title, systemImage: sectionSymbol(section.id))
         }
-        .buttonStyle(.plain)
         .contextMenu {
             Button(role: .destructive) {
                 follows.toggle(section.id)
@@ -378,13 +312,7 @@ struct NewInPinnedBlockView: View {
                 }
 
                 Button(action: onSeeAll) {
-                    HStack {
-                        Spacer()
-                        Text("See all ›")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(settings.accent.color)
-                    }
-                    .padding(.vertical, 2)
+                    Text("See all")
                 }
                 .fmhyRowBackground()
             } header: {
@@ -419,13 +347,7 @@ struct FavouritesBlockView: View {
                 }
 
                 Button(action: onSeeAll) {
-                    HStack {
-                        Spacer()
-                        Text("Saved ›")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(settings.accent.color)
-                    }
-                    .padding(.vertical, 2)
+                    Text("Show all saved")
                 }
                 .fmhyRowBackground()
             } header: {
