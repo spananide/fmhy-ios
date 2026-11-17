@@ -7,6 +7,7 @@ struct CheckLinkView: View {
     @EnvironmentObject var downloadChecks: DownloadChecks
     @EnvironmentObject var vtSiteChecks: VtSiteChecks
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
 
     @State private var urlInput = ""
     @State private var currentVerdict: Verdict?
@@ -212,6 +213,8 @@ struct CheckLinkView: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
                     .accessibilityLabel("Clear input")
                 }
             }
@@ -265,7 +268,7 @@ struct CheckLinkView: View {
                     HStack(spacing: 12) {
                         Image(systemName: item.status.symbolName)
                             .foregroundStyle(item.status.color)
-                            .font(.system(size: 20))
+                            .font(.title3)
 
                         Text(item.url)
                             .font(.body.monospaced())
@@ -274,7 +277,6 @@ struct CheckLinkView: View {
 
                         Spacer()
                     }
-                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
             }
@@ -292,65 +294,49 @@ struct CheckLinkView: View {
 
     private func verdictCard(_ verdict: Verdict) -> some View {
         SwiftUI.Section {
-            VStack(spacing: 12) {
-                Image(systemName: verdict.status.symbolName)
-                    .font(.system(size: 48))
-                    .foregroundStyle(verdict.status.color)
-                    .padding(.top, 8)
-
-                Text(verdict.status.title)
-                    .font(.title2.bold())
-                    .foregroundStyle(verdict.status.color)
-                    .multilineTextAlignment(.center)
-
-                if let host = verdict.host, !host.isEmpty {
-                    Text(host)
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verdict.status.title)
                         .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let reason = verdict.reason, !reason.isEmpty {
-                    Text(reason)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 4)
-                }
-
-                if let host = UrlExtractor.hostForCheckJustHost(verdict: verdict) {
-                    Button("Check just \(host)") {
-                        urlInput = host
-                        runImmediateCheck(host)
+                    if let host = verdict.host, !host.isEmpty {
+                        Text(host)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
+                }
+            } icon: {
+                Image(systemName: verdict.status.symbolName)
+                    .foregroundStyle(verdict.status.color)
+                    .imageScale(.large)
+            }
+
+            if let reason = verdict.reason, !reason.isEmpty {
+                Text(reason)
                     .font(.subheadline)
-                    .padding(.top, 2)
-                }
+            }
 
-                if verdict.status != .invalid {
-                    HStack(spacing: 12) {
-                        if let url = targetUrlToOpen(verdict) {
-                            Button {
-                                openURL(url)
-                            } label: {
-                                Label("Open", systemImage: "safari")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-
-                        Button {
-                            UIPasteboard.general.string = targetUrlString(verdict)
-                        } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(.top, 4)
+            if let host = UrlExtractor.hostForCheckJustHost(verdict: verdict) {
+                Button("Check just \(host)") {
+                    urlInput = host
+                    runImmediateCheck(host)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, 8)
+
+            if verdict.status != .invalid {
+                if let url = targetUrlToOpen(verdict) {
+                    Button {
+                        openURL(url)
+                    } label: {
+                        Label("Open", systemImage: "safari")
+                    }
+                }
+
+                Button {
+                    UIPasteboard.general.string = targetUrlString(verdict)
+                } label: {
+                    Label("Copy link", systemImage: "doc.on.doc")
+                }
+            }
         }
     }
 
@@ -360,7 +346,7 @@ struct CheckLinkView: View {
                 HStack(spacing: 8) {
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .scaleEffect(0.8)
+                        .controlSize(.small)
                     Text(isSubmittingLink ? "Submitting link for scan…" : "Scanning link…")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -419,7 +405,7 @@ struct CheckLinkView: View {
                     if entry.tier > 0 {
                         Image(systemName: "star.fill")
                             .font(.caption)
-                            .foregroundStyle(Color(red: 1.0, green: 0.75, blue: 0.3))
+                            .foregroundStyle(.yellow)
                     }
 
                     Spacer()
@@ -463,9 +449,35 @@ struct CheckLinkView: View {
 
     // MARK: - Layered Body
 
+    @ViewBuilder
+    private var emptyHint: some View {
+        if urlInput.isEmpty && currentVerdict == nil && recentChecks.isEmpty {
+            ContentUnavailableView(
+                "Check a link",
+                systemImage: "checkmark.shield",
+                description: Text("Paste a link or domain to see if it is on the FMHY lists or the unsafe list.")
+            )
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    @ViewBuilder
+    private var loadingHint: some View {
+        if !urlInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && currentVerdict == nil && store.safeGuard == nil {
+            SwiftUI.Section {
+                Text("The FMHY lists are still loading. Try again in a moment.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var layerOne: some View {
         List {
             inputSection
+
+            emptyHint
+
+            loadingHint
 
             if urlInput.isEmpty && currentVerdict == nil && !recentChecks.isEmpty {
                 recentSection
@@ -488,7 +500,16 @@ struct CheckLinkView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .fmhyListStyle()
         .navigationTitle("Check Link")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
+                    dismiss()
+                }
+            }
+        }
         .onChange(of: urlInput) { _, newValue in
             handleQueryChange(newValue)
         }
@@ -564,7 +585,7 @@ private extension SafetyStatus {
         case .unsafe:
             return .red
         case .searchEngine, .noData, .invalid:
-            return .gray
+            return .secondary
         }
     }
 

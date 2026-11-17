@@ -94,34 +94,14 @@ struct SearchView: View {
     private var helpCard: some View {
         List {
             SwiftUI.Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Search Filters")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    Text("Use filter keywords to narrow down wiki entries:")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        filterRow(syntax: "in:video anime", note: "Search in video section")
-                        filterRow(syntax: "is:starred", note: "Top picks and starred sites")
-                        filterRow(syntax: "site:github.com", note: "Filter by website domain")
-                        filterRow(syntax: "\"exact phrase\"", note: "Match exact words in quotes")
-                    }
-
-                    Divider()
-                        .padding(.vertical, 4)
-
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text("Typos are fine — fuzzy search automatically finds close matches.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, 4)
+                filterRow(syntax: "in:video anime", note: "Search in video section")
+                filterRow(syntax: "is:starred", note: "Top picks and starred sites")
+                filterRow(syntax: "site:github.com", note: "Filter by website domain")
+                filterRow(syntax: "\"exact phrase\"", note: "Match exact words in quotes")
+            } header: {
+                Text("Search filters")
+            } footer: {
+                Text("Typos are fine. Fuzzy search finds close matches.")
             }
         }
         .listStyle(.insetGrouped)
@@ -130,17 +110,12 @@ struct SearchView: View {
 
     @ViewBuilder
     private func filterRow(syntax: String, note: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(syntax)
-                .font(.system(.subheadline, design: .monospaced))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color(.systemFill))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            Spacer()
+        LabeledContent {
             Text(note)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+        } label: {
+            Text(syntax)
+                .font(.system(.subheadline, design: .monospaced))
         }
     }
 }

@@ -137,16 +137,7 @@ struct RootView: View {
 }
 
 private struct CheckLinkSheetContainer: View {
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
         CheckLinkView()
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
     }
 }
