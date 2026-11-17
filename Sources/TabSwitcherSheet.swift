@@ -42,29 +42,30 @@ struct TabSwitcherSheet: View {
                     .disabled(tabs.tabs.isEmpty)
                 }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            _ = tabs.newTab(isPrivate: true, select: true)
-                            dismiss()
-                        } label: {
-                            Label("New private tab", systemImage: "shield")
-                        }
-                        .accessibilityLabel("New private tab")
-
-                        Button {
-                            _ = tabs.newTab(isPrivate: false, select: true)
-                            dismiss()
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .accessibilityLabel("New tab")
-
-                        Button("Done") {
-                            dismiss()
-                        }
-                        .font(.headline)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
                     }
+                }
+
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button {
+                        _ = tabs.newTab(isPrivate: true, select: true)
+                        dismiss()
+                    } label: {
+                        Label("New private tab", systemImage: "shield")
+                    }
+                    .accessibilityLabel("New private tab")
+
+                    Spacer()
+
+                    Button {
+                        _ = tabs.newTab(isPrivate: false, select: true)
+                        dismiss()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("New tab")
                 }
             }
             .confirmationDialog("Close all tabs?", isPresented: $showCloseAllConfirm, titleVisibility: .visible) {
@@ -125,12 +126,13 @@ struct TabSwitcherSheet: View {
                 tabs.close(tab)
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 20))
+                    .font(.title3)
                     .foregroundStyle(.secondary)
                     .background(Circle().fill(Color(.secondarySystemGroupedBackground)))
             }
             .buttonStyle(.plain)
-            .padding(8)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
             .accessibilityLabel("Close tab")
         }
     }

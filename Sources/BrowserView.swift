@@ -181,17 +181,16 @@ struct BrowserView: View {
     }
 
     private var downloadToast: some View {
-        HStack(spacing: 8) {
+        Label {
+            Text("Download started")
+        } icon: {
             Image(systemName: "arrow.down.circle.fill")
                 .foregroundStyle(.green)
-            Text("Download started")
-                .font(.subheadline.bold())
         }
+        .font(.subheadline.bold())
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .clipShape(Capsule())
-        .shadow(radius: 4)
+        .background(.bar, in: Capsule())
         .padding(.top, 50)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
@@ -202,9 +201,10 @@ struct BrowserView: View {
                 showSafetySheet = true
             } label: {
                 Image(systemName: badgeSymbolName)
-                    .font(.system(size: 20))
+                    .font(.title3)
                     .foregroundStyle(badgeColor)
             }
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Safety status")
 
             HStack(spacing: 6) {
@@ -231,9 +231,9 @@ struct BrowserView: View {
                     tabs.selected?.stop()
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Stop loading")
             } else {
@@ -241,16 +241,16 @@ struct BrowserView: View {
                     tabs.selected?.reload()
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 44, height: 44)
                 }
                 .disabled(tabs.selected?.url == nil)
                 .accessibilityLabel("Reload")
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
     }
 
     private var isCurrentSiteBlocking: Bool {
@@ -272,8 +272,9 @@ struct BrowserView: View {
             showShieldSheet = true
         } label: {
             Image(systemName: isCurrentSiteBlocking ? "shield.checkerboard" : "shield.slash")
-                .font(.system(size: 18, weight: .medium))
+                .font(.title3.weight(.medium))
         }
+        .frame(minWidth: 44, minHeight: 44)
         .accessibilityLabel("Shield protections")
     }
 
@@ -283,8 +284,9 @@ struct BrowserView: View {
                 tabs.selected?.goBack()
             } label: {
                 Image(systemName: "chevron.backward")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.title3.weight(.medium))
             }
+            .frame(minWidth: 44, minHeight: 44)
             .disabled(!(tabs.selected?.canGoBack ?? false))
             .accessibilityLabel("Back")
 
@@ -294,8 +296,9 @@ struct BrowserView: View {
                 tabs.selected?.goForward()
             } label: {
                 Image(systemName: "chevron.forward")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.title3.weight(.medium))
             }
+            .frame(minWidth: 44, minHeight: 44)
             .disabled(!(tabs.selected?.canGoForward ?? false))
             .accessibilityLabel("Forward")
 
@@ -304,14 +307,18 @@ struct BrowserView: View {
             if let url = tabs.selected?.url {
                 ShareLink(item: url) {
                     Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.title3.weight(.medium))
                 }
+                .frame(minWidth: 44, minHeight: 44)
                 .accessibilityLabel("Share")
             } else {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.tertiary)
-                    .accessibilityLabel("Share")
+                Button {} label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.title3.weight(.medium))
+                }
+                .disabled(true)
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel("Share")
             }
 
             Spacer()
@@ -381,8 +388,9 @@ struct BrowserView: View {
                 .disabled(tabs.selected == nil)
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.title3.weight(.medium))
             }
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Page options")
 
             Spacer()
@@ -395,10 +403,12 @@ struct BrowserView: View {
                         .stroke(Color.primary, lineWidth: 1.5)
                         .frame(width: 20, height: 20)
                     Text("\(tabs.tabs.count)")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.caption2.bold())
+                        .dynamicTypeSize(...DynamicTypeSize.xLarge)
                         .foregroundStyle(.primary)
                 }
             }
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("Tabs, \(tabs.tabs.count) open")
 
             Spacer()
@@ -407,12 +417,13 @@ struct BrowserView: View {
                 _ = tabs.newTab(select: true)
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.title3.weight(.medium))
             }
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel("New tab")
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 0)
         .background(Color(.systemBackground))
     }
 
@@ -517,47 +528,26 @@ private struct SafetyInfoSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Spacer()
-                Button("Done") {
-                    dismiss()
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title).font(.headline)
+                            if let host = host, !host.isEmpty { Text(host).font(.subheadline).foregroundStyle(.secondary) }
+                        }
+                    } icon: {
+                        Image(systemName: symbol).foregroundStyle(color).imageScale(.large)
+                    }
+                    if let reason = verdict?.reason, !reason.isEmpty { Text(reason).font(.footnote) }
+                    if let host = host, !host.isEmpty { SiteCheckSection(host: host, verdict: verdict, isPrivate: isPrivate) }
                 }
-                .font(.headline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
             }
-            .padding(.horizontal)
-            .padding(.top, 14)
-
-            Image(systemName: symbol)
-                .font(.system(size: 38))
-                .foregroundStyle(color)
-
-            Text(title)
-                .font(.title3.bold())
-                .foregroundStyle(color)
-
-            if let host = host, !host.isEmpty {
-                Text(host)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let reason = verdict?.reason, !reason.isEmpty {
-                Text(reason)
-                    .font(.footnote)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .lineLimit(3)
-            }
-
-            if let host = host, !host.isEmpty {
-                SiteCheckSection(host: host, verdict: verdict, isPrivate: isPrivate)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-            }
-
-            Spacer(minLength: 0)
+            .navigationTitle("Site safety")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
 }
