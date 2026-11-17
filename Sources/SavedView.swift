@@ -17,7 +17,7 @@ struct SavedView: View {
                     ContentUnavailableView(
                         "No Saved Sites",
                         systemImage: "bookmark",
-                        description: Text("Swipe right on any site to save it")
+                        description: Text("Swipe left on any site, or hold it, to save it.")
                     )
                 } else {
                     List {

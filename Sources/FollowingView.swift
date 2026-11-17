@@ -14,7 +14,6 @@ struct FollowingView: View {
     @EnvironmentObject var follows: Follows
     @EnvironmentObject var store: WikiStore
     @EnvironmentObject var changes: ChangesStore
-    @EnvironmentObject var settings: AppSettings
 
     private var items: [FollowedSectionItem] {
         let sectionMap = Dictionary(store.sections.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -71,36 +70,20 @@ struct FollowingView: View {
         }
         .listStyle(.insetGrouped)
         .fmhyListStyle()
+        .sensoryFeedback(.selection, trigger: follows.sectionIds.count)
     }
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bell.slash")
-                .font(.system(size: 48))
-                .foregroundStyle(settings.accent.color)
-
-            Text("No followed categories")
-                .font(.title3.bold())
-                .foregroundStyle(.primary)
-
-            Text("Tap the bell icon at the top of any category to follow it and receive notifications when new sites are added.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-
-            Button {
+        ContentUnavailableView {
+            Label("No Followed Categories", systemImage: "bell.slash")
+        } description: {
+            Text("Tap the bell at the top of any category to be notified when new sites are added.")
+        } actions: {
+            Button("Notification Settings") {
                 openNotificationSettings()
-            } label: {
-                Label("Notification settings", systemImage: "gearshape")
-                    .font(.subheadline.weight(.semibold))
             }
             .buttonStyle(.bordered)
-            .padding(.top, 8)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
-        .fmhyListStyle()
     }
 
     @ViewBuilder
@@ -131,29 +114,18 @@ struct FollowingView: View {
     }
 
     private func rowContent(for item: FollowedSectionItem) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: item.symbol)
-                .font(.title3)
-                .foregroundStyle(.tint)
-                .frame(width: 28)
-
+        Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(.primary)
-
+                    .font(.body)
                 Text(siteCountString(item.siteCount))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
-            Spacer()
-
-            if item.newCount > 0 {
-                TagLabel(text: "+\(item.newCount) new")
-            }
+        } icon: {
+            Image(systemName: item.symbol)
         }
-        .padding(.vertical, 2)
+        .badge(item.newCount)
     }
 
     private var notificationSettingsSection: some View {
@@ -164,7 +136,7 @@ struct FollowingView: View {
                 HStack {
                     Label("Notification settings", systemImage: "gearshape")
                     Spacer()
-                    Image(systemName: "chevron.right")
+                    Image(systemName: "arrow.up.forward")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.tertiary)
                 }
