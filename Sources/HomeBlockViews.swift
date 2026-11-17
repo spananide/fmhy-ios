@@ -23,7 +23,7 @@ struct SearchBlockView: View {
             Button(action: onSearch) {
                 Label {
                     Text(searchText)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondary)
                 } icon: {
                     Image(systemName: "magnifyingglass")
                 }
