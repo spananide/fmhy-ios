@@ -42,11 +42,7 @@ enum ChangeKind: String, CaseIterable, Identifiable {
         case .added: return .green
         case .removed: return .red
         case .starred: return .yellow
-        case .unstarred: return .gray
-        case .url_changed: return .blue
-        case .renamed: return .orange
-        case .edited: return .secondary
-        case .moved: return .purple
+        case .unstarred, .url_changed, .renamed, .moved, .edited: return .secondary
         }
     }
 }
@@ -145,6 +141,15 @@ struct ChangesView: View {
         store.sections.first(where: { $0.id == id })?.title ?? id
     }
 
+    private func kindBinding(_ kind: ChangeKind) -> Binding<Bool> {
+        Binding(
+            get: { selectedKinds.contains(kind) },
+            set: { isOn in
+                if isOn { selectedKinds.insert(kind) } else { selectedKinds.remove(kind) }
+            }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -233,33 +238,13 @@ struct ChangesView: View {
 
                         SwiftUI.Section("Filter by Type") {
                             ForEach(ChangeKind.allCases) { kind in
-                                Button {
-                                    if selectedKinds.contains(kind) {
-                                        selectedKinds.remove(kind)
-                                    } else {
-                                        selectedKinds.insert(kind)
-                                    }
-                                } label: {
-                                    if selectedKinds.contains(kind) {
-                                        Label(kind.displayName, systemImage: "checkmark")
-                                    } else {
-                                        Text(kind.displayName)
-                                    }
-                                }
+                                Toggle(kind.displayName, isOn: kindBinding(kind))
                             }
                         }
 
                         SwiftUI.Section {
-                            Button {
-                                onlyFollowed.toggle()
-                            } label: {
-                                if onlyFollowed {
-                                    Label("Only followed categories", systemImage: "checkmark")
-                                } else {
-                                    Text("Only followed categories")
-                                }
-                            }
-                            .disabled(follows.isEmpty)
+                            Toggle("Only followed categories", isOn: $onlyFollowed)
+                                .disabled(follows.isEmpty)
                         }
                     } label: {
                         let isFiltered = selectedSectionId != nil || onlyFollowed || selectedKinds != Self.defaultKinds

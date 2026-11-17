@@ -38,16 +38,10 @@ struct PostsView: View {
 
     private var offlineBannerSection: some View {
         SwiftUI.Section {
-            HStack(spacing: 8) {
-                Image(systemName: "wifi.slash")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Text("Offline · showing cached posts")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 2)
-            .fmhyRowBackground()
+            Label("Offline · showing cached posts", systemImage: "wifi.slash")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fmhyRowBackground()
         }
     }
 
@@ -153,6 +147,7 @@ struct PostListRow: View {
                 Circle()
                     .fill(.tint)
                     .frame(width: 8, height: 8)
+                    .accessibilityLabel("Unread")
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -169,7 +164,6 @@ struct PostListRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 2)
     }
 }
 
