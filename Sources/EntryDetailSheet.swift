@@ -53,7 +53,9 @@ struct EntryDetailSheet: View {
                         }
                     }
                     .padding(.vertical, 4)
+                }
 
+                SwiftUI.Section {
                     Button {
                         if let target = SafariTarget(urlString: entry.url) {
                             dismiss()
@@ -61,22 +63,15 @@ struct EntryDetailSheet: View {
                         }
                     } label: {
                         Label("Open site", systemImage: "safari")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                     .disabled(SafariTarget(urlString: entry.url) == nil)
-                    .padding(.vertical, 2)
-                }
 
-                SwiftUI.Section {
                     Button {
                         if let target = SafariTarget(urlString: entry.url) {
                             UIApplication.shared.open(target.url)
                         }
                     } label: {
-                        Label("Open in Safari", systemImage: "safari")
+                        Label("Open in Safari", systemImage: "arrow.up.forward.app")
                     }
                     .disabled(SafariTarget(urlString: entry.url) == nil)
 
@@ -120,9 +115,6 @@ struct EntryDetailSheet: View {
                                     Text(mirror.url.hostOnly)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
-                                    Image(systemName: "safari")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
                                 }
                             }
                             .disabled(SafariTarget(urlString: mirror.url) == nil)
@@ -147,9 +139,6 @@ struct EntryDetailSheet: View {
                                     Text(extra.url.hostOnly)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
-                                    Image(systemName: "safari")
-                                        .font(.footnote)
-                                        .foregroundStyle(.secondary)
                                 }
                             }
                             .disabled(SafariTarget(urlString: extra.url) == nil)
@@ -158,10 +147,12 @@ struct EntryDetailSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .fmhyListStyle()
+            .sensoryFeedback(.selection, trigger: bookmarks.isSaved(entry.id))
             .navigationTitle(entry.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
                     }

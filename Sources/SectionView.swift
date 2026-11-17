@@ -191,6 +191,7 @@ struct SectionView: View {
                 .accessibilityLabel("Follow category")
             }
         }
+        .sensoryFeedback(.selection, trigger: follows.isFollowing(section.id))
         .searchable(text: $filterText, prompt: "Filter in \(section.title)")
         .onAppear {
             visits.record(sectionId: section.id)

@@ -35,13 +35,11 @@ struct NoteSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    headerView
-                    Divider()
                     markdownContent
                         .frame(maxWidth: .infinity, alignment: .leading)
                     gitHubButtonSection
                 }
-                .padding(20)
+                .padding(16)
             }
             .navigationTitle("Note")
             .navigationBarTitleDisplayMode(.inline)
@@ -55,38 +53,17 @@ struct NoteSheet: View {
         }
     }
 
-    private var headerView: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "info.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.tint)
-
-            Text("Section Note")
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-            Spacer()
-        }
-    }
-
     @ViewBuilder
     private var gitHubButtonSection: some View {
         if let url = gitHubURL {
-            VStack(spacing: 8) {
-                Divider()
-                    .padding(.vertical, 8)
-
-                Button {
-                    dismiss()
-                    hub.open(url)
-                } label: {
-                    Label("Open on GitHub", systemImage: "arrow.up.right")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+            Button {
+                dismiss()
+                hub.open(url)
+            } label: {
+                Label("Open on GitHub", systemImage: "arrow.up.right")
             }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
         }
     }
 }

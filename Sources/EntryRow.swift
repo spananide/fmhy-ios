@@ -59,6 +59,7 @@ struct EntryRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: bookmarks.isSaved(entry.id))
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button {
                 bookmarks.toggle(entry.id)
