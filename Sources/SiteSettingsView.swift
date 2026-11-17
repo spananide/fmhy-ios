@@ -28,7 +28,7 @@ struct SiteSettingsView: View {
             }
             .listStyle(.insetGrouped)
             .fmhyListStyle()
-            .navigationTitle("Site settings for \(displayHost)")
+            .navigationTitle(displayHost)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -94,7 +94,7 @@ struct SiteSettingsView: View {
             ))
             .fmhyRowBackground()
         } header: {
-            Text("Site settings for \(displayHost)")
+            Text("Site settings")
         }
     }
 
@@ -148,7 +148,7 @@ struct ConfiguredSitesSettingsView: View {
         .navigationTitle("Sites with custom settings")
         .toolbar {
             if !hosts.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("Reset all", role: .destructive) {
                         showResetAllConfirm = true
                     }
@@ -174,9 +174,12 @@ struct ConfiguredSitesSettingsView: View {
     }
 
     private var emptyView: some View {
-        Text("No site settings yet")
-            .foregroundStyle(.secondary)
-            .fmhyRowBackground()
+        ContentUnavailableView(
+            "No Site Settings",
+            systemImage: "slider.horizontal.3",
+            description: Text("Sites you customize from the browser's protections sheet appear here.")
+        )
+        .listRowBackground(Color.clear)
     }
 
     private var sitesList: some View {
@@ -185,14 +188,8 @@ struct ConfiguredSitesSettingsView: View {
                 Button {
                     selectedSiteForEdit = IdentifiedSite(host: host)
                 } label: {
-                    HStack {
-                        Text(host)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
+                    Text(host)
+                        .foregroundStyle(.primary)
                 }
                 .fmhyRowBackground()
             }

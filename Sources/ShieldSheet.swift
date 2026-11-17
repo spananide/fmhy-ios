@@ -83,7 +83,8 @@ struct ShieldSheet: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 12) {
                     Image(systemName: shieldSymbolName)
-                        .font(.system(size: 28))
+                        .font(.title)
+                        .frame(width: 36)
                         .foregroundStyle(isBlockingOnThisSite ? Color.accentColor : .secondary)
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -125,13 +126,7 @@ struct ShieldSheet: View {
                 Button {
                     showSiteSettings = true
                 } label: {
-                    HStack {
-                        Label("Site settings…", systemImage: "slider.horizontal.3")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
+                    Label("Site settings…", systemImage: "slider.horizontal.3")
                 }
                 .foregroundStyle(.primary)
                 .fmhyRowBackground()
@@ -140,13 +135,7 @@ struct ShieldSheet: View {
             Button {
                 showAllowlist = true
             } label: {
-                HStack {
-                    Label("Manage allowlisted sites", systemImage: "list.bullet")
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
+                Label("Manage allowlisted sites", systemImage: "list.bullet")
             }
             .foregroundStyle(.primary)
             .fmhyRowBackground()
