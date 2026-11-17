@@ -190,7 +190,7 @@ struct SiteCheckSection: View {
         HStack(spacing: 8) {
             ProgressView()
                 .progressViewStyle(.circular)
-                .scaleEffect(0.8)
+                .controlSize(.small)
             Text(runningText)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

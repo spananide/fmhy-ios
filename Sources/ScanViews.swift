@@ -216,53 +216,29 @@ public enum CheckChips {
     }
 }
 
-// MARK: - Color Hex Extension
-
-private extension Color {
-    init(hexVal: UInt32) {
-        let r = Double((hexVal >> 16) & 0xFF) / 255.0
-        let g = Double((hexVal >> 8) & 0xFF) / 255.0
-        let b = Double(hexVal & 0xFF) / 255.0
-        self.init(.sRGB, red: r, green: g, blue: b, opacity: 1.0)
-    }
-}
-
 // MARK: - Check Chip View
 
 public struct CheckChip: View {
     public let chip: CheckChipData
     public var onTap: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-
     public init(chip: CheckChipData, onTap: @escaping () -> Void = {}) {
         self.chip = chip
         self.onTap = onTap
     }
 
-    private var colors: (bg: Color, fg: Color) {
-        let isDark = colorScheme == .dark
+    private var toneColor: Color {
         switch chip.tone {
         case .ok:
-            return isDark
-                ? (Color(hexVal: 0x1D3B26), Color(hexVal: 0x9BE0AC))
-                : (Color(hexVal: 0xDDF3E0), Color(hexVal: 0x14532D))
+            return .green
         case .warn:
-            return isDark
-                ? (Color(hexVal: 0x46330C), Color(hexVal: 0xFFD27A))
-                : (Color(hexVal: 0xFFFFEFCC), Color(hexVal: 0x6B4300))
+            return .orange
         case .danger:
-            return isDark
-                ? (Color(hexVal: 0x5A1E1A), Color(hexVal: 0xFFB4AB))
-                : (Color(hexVal: 0xFCDEDB), Color(hexVal: 0x8C1A12))
+            return .red
         case .running:
-            return isDark
-                ? (Color(hexVal: 0x1B3556), Color(hexVal: 0xA9CCFF))
-                : (Color(hexVal: 0xDBEAFE), Color(hexVal: 0x0B4A8F))
+            return Color.accentColor
         case .neutral:
-            return isDark
-                ? (Color(white: 0.22), Color(white: 0.85))
-                : (Color(white: 0.92), Color(white: 0.25))
+            return .secondary
         }
     }
 
@@ -272,37 +248,43 @@ public struct CheckChip: View {
                 switch chip.icon {
                 case .shieldCheck:
                     Image(systemName: "checkmark.shield.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(toneColor)
                 case .warning:
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(toneColor)
                 case .shieldX:
                     Image(systemName: "xmark.shield.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(toneColor)
                 case .shieldUnknown:
                     Image(systemName: "questionmark.shield")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(toneColor)
                 case .cloudOff:
                     Image(systemName: "bolt.horizontal.circle")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(toneColor)
                 case .spinner:
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .scaleEffect(0.65)
-                        .frame(width: 14, height: 14)
+                        .controlSize(.mini)
                 }
 
                 Text("\(chip.service.label) · \(chip.text)")
                     .font(.caption.weight(.medium))
                     .lineLimit(1)
+                    .foregroundStyle(.primary)
             }
-            .foregroundStyle(colors.fg)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(colors.bg)
-            .clipShape(Capsule())
+            .background(toneColor.opacity(0.15), in: Capsule())
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(chip.service.label), \(chip.text)")
     }
 }
 
@@ -415,31 +397,29 @@ public struct ScanResultSheet: View {
     @ViewBuilder
     private func serviceSection(_ serviceResult: ServiceResult) -> some View {
         SwiftUI.Section {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(serviceResult.service.label)
-                                .font(.headline)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(serviceResult.service.label)
+                    .font(.headline)
 
-                            Text(CheckUiText.serviceLine(serviceResult))
-                                .font(.body)
+                Text(CheckUiText.serviceLine(serviceResult))
+                    .font(.body)
 
-                            if let scannedAt = serviceResult.scannedAt {
-                                Text("Scanned \(Self.dateText(scannedAt))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                if let scannedAt = serviceResult.scannedAt {
+                    Text("Scanned \(Self.dateText(scannedAt))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-                            if let reportUrl = serviceResult.reportUrl, let url = URL(string: reportUrl),
-                               serviceResult.verdict != .unknown || serviceResult.error != nil {
-                                Button("Full report") {
-                                    reportTarget = SafariTarget(url: url)
-                                }
-                                .font(.subheadline.weight(.semibold))
-                                .padding(.top, 2)
-                            }
-                        }
-                        .padding(.vertical, 4)
+                if let reportUrl = serviceResult.reportUrl, let url = URL(string: reportUrl),
+                   serviceResult.verdict != .unknown || serviceResult.error != nil {
+                    Button("Full report") {
+                        reportTarget = SafariTarget(url: url)
                     }
-                    .fmhyRowBackground()
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .fmhyRowBackground()
     }
 
     public var body: some View {
@@ -486,7 +466,7 @@ public struct ScanResultSheet: View {
             .navigationTitle("Scan Result")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
                     }

@@ -99,13 +99,9 @@ public struct DownloadOfferSheet: View {
 
                         if isRisky {
                             VStack(alignment: .leading, spacing: 6) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "exclamationmark.triangle.fill")
-                                        .foregroundStyle(.orange)
-                                    Text("This file can install software")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.orange)
-                                }
+                                Label("This file can install software", systemImage: "exclamationmark.triangle.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.orange)
                                 Text(CheckPolicy.warningMessage(host: hostGuess.isEmpty ? "this site" : hostGuess))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -133,13 +129,9 @@ public struct DownloadOfferSheet: View {
                                 }
 
                                 if isDangerous {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "xmark.shield.fill")
-                                            .foregroundStyle(.red)
-                                        Text(CheckUiText.linkVerdictTitle(res.verdict))
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.red)
-                                    }
+                                    Label(CheckUiText.linkVerdictTitle(res.verdict), systemImage: "xmark.shield.fill")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.red)
                                 }
                             }
                             .padding(.vertical, 4)
@@ -147,12 +139,7 @@ public struct DownloadOfferSheet: View {
                             Button {
                                 checkLink()
                             } label: {
-                                HStack {
-                                    Image(systemName: "shield.checkerboard")
-                                    Text("Check link first")
-                                        .fontWeight(isRisky ? .semibold : .regular)
-                                }
-                                .frame(maxWidth: .infinity)
+                                Label("Check link first", systemImage: "shield.checkerboard")
                             }
                             .modifier(CheckButtonProminence(prominent: isRisky))
                             .tint(isRisky ? Color.accentColor : .primary)
@@ -167,32 +154,16 @@ public struct DownloadOfferSheet: View {
                     .fmhyRowBackground()
                 }
 
-                SwiftUI.Section {
-                    if isDangerous {
+                if isDangerous {
+                    SwiftUI.Section {
                         Button(role: .destructive) {
                             startDownload()
                         } label: {
                             Text("Download anyway")
-                                .frame(maxWidth: .infinity)
-                                .fontWeight(.semibold)
                         }
-                    } else {
-                        Button {
-                            startDownload()
-                        } label: {
-                            Text("Download")
-                                .frame(maxWidth: .infinity)
-                                .fontWeight(.semibold)
-                        }
-                        .disabled(parsedURL == nil)
                     }
-
-                    Button("Cancel", role: .cancel) {
-                        dismiss()
-                    }
-                    .frame(maxWidth: .infinity)
+                    .fmhyRowBackground()
                 }
-                .fmhyRowBackground()
             }
             .listStyle(.insetGrouped)
             .fmhyListStyle()
@@ -203,6 +174,13 @@ public struct DownloadOfferSheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Download") {
+                        startDownload()
+                    }
+                    .disabled(parsedURL == nil || isDangerous)
                 }
             }
             .sheet(isPresented: $showingResultSheet) {

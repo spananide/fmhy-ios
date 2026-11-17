@@ -24,6 +24,7 @@ struct DownloadsView: View {
     @State private var itemToConfirm: DownloadItem?
     @State private var showRiskyAlert = false
     @State private var activeSheet: ActiveSheet?
+    @State private var fileErrorMessage: String?
 
     private struct PendingUploadTarget {
         let item: DownloadItem
@@ -68,13 +69,13 @@ struct DownloadsView: View {
         listContent
             .navigationTitle("Downloads")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
                     }
                 }
 
-                ToolbarItemGroup(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .primaryAction) {
                     Menu {
                         Button {
                             showDownloadOffer = true
@@ -100,6 +101,7 @@ struct DownloadsView: View {
                         })
                     } label: {
                         Image(systemName: "ellipsis.circle")
+                            .accessibilityLabel("More")
                     }
 
                     Button {
@@ -112,19 +114,9 @@ struct DownloadsView: View {
             }
             .overlay {
                 if fileImporterProgress {
-                    ZStack {
-                        Color.black.opacity(0.3).ignoresSafeArea()
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .scaleEffect(1.3)
-                            Text("Checking file…")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-                        }
+                    ProgressView("Checking file…")
                         .padding(24)
-                        .background(.regularMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
     }
@@ -145,8 +137,8 @@ struct DownloadsView: View {
                 case .success(let urls):
                     guard let fileURL = urls.first else { return }
                     handlePickedFile(fileURL)
-                case .failure:
-                    break
+                case .failure(let error):
+                    fileErrorMessage = error.localizedDescription
                 }
             }
             .sheet(item: $activeSheet) { sheet in
@@ -267,6 +259,17 @@ struct DownloadsView: View {
             } message: {
                 Text("Turn on VirusTotal or Hybrid Analysis and add a free key in settings to check files.")
             }
+            .alert(
+                "Couldn't Check File",
+                isPresented: Binding(
+                    get: { fileErrorMessage != nil },
+                    set: { if !$0 { fileErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(fileErrorMessage ?? "")
+            }
     }
 
     private var layerFive: some View {
@@ -325,9 +328,9 @@ struct DownloadsView: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: iconName(for: item.fileName))
-                    .font(.system(size: 26))
+                    .font(.title)
                     .foregroundStyle(iconColor(for: item))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 36)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.fileName)
@@ -351,12 +354,9 @@ struct DownloadsView: View {
                     }
 
                     if item.isRisky {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text("⚠︎ Can run code")
-                        }
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.orange)
+                        Label("Can run code", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.orange)
                     }
 
                     if let check = item.check {
@@ -382,7 +382,6 @@ struct DownloadsView: View {
                                     Text("Delete")
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(.red)
 
                                 Button {
                                     pendingDangerousKeepItem = item
@@ -431,7 +430,6 @@ struct DownloadsView: View {
                             handleCheckFile(item)
                         } label: {
                             Label(item.check == nil ? "Check file" : "Check again", systemImage: "shield.checkerboard")
-                                .font(.caption.weight(.medium))
                         }
                         .buttonStyle(.bordered)
                         .padding(.top, 2)
@@ -466,14 +464,14 @@ struct DownloadsView: View {
                 } label: {
                     Label("Resume", systemImage: "play.fill")
                 }
-                .tint(.blue)
+                .tint(Color.accentColor)
             } else if item.state == .failed {
                 Button {
                     downloads.retry(item)
                 } label: {
                     Label("Retry", systemImage: "arrow.clockwise")
                 }
-                .tint(.green)
+                .tint(Color.accentColor)
             }
         }
         .contextMenu {
@@ -555,7 +553,10 @@ struct DownloadsView: View {
     }
 
     private func handlePickedFile(_ sourceURL: URL) {
-        guard sourceURL.startAccessingSecurityScopedResource() else { return }
+        guard sourceURL.startAccessingSecurityScopedResource() else {
+            fileErrorMessage = "Couldn't access the selected file."
+            return
+        }
         defer { sourceURL.stopAccessingSecurityScopedResource() }
 
         let tempURL = FileManager.default.temporaryDirectory
@@ -566,6 +567,7 @@ struct DownloadsView: View {
             }
             try FileManager.default.copyItem(at: sourceURL, to: tempURL)
         } catch {
+            fileErrorMessage = "Couldn't read the selected file."
             return
         }
 
@@ -576,7 +578,10 @@ struct DownloadsView: View {
             do {
                 sha = try await checks.fingerprint(fileURL: tempURL)
             } catch {
-                await MainActor.run { fileImporterProgress = false }
+                await MainActor.run {
+                    fileImporterProgress = false
+                    fileErrorMessage = "Couldn't check the selected file."
+                }
                 return
             }
 
@@ -626,9 +631,9 @@ struct DownloadsView: View {
     private func iconColor(for item: DownloadItem) -> Color {
         switch item.state {
         case .completed:
-            return item.isRisky ? .orange : .green
+            return item.isRisky ? .orange : .secondary
         case .checking:
-            return .blue
+            return .secondary
         case .awaitingDecision:
             return .orange
         case .failed:
@@ -636,7 +641,7 @@ struct DownloadsView: View {
         case .downloading:
             return Color.accentColor
         case .paused:
-            return .orange
+            return .secondary
         case .queued, .cancelled:
             return .secondary
         }
