@@ -169,72 +169,35 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         SwiftUI.Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Theme")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Picker("Theme", selection: $settings.theme) {
-                    ForEach(AppTheme.allCases) { theme in
-                        Text(theme.displayName).tag(theme)
-                    }
+            Picker("Theme", selection: $settings.theme) {
+                ForEach(AppTheme.allCases) { theme in
+                    Text(theme.displayName).tag(theme)
                 }
-                .pickerStyle(.segmented)
             }
-            .padding(.vertical, 4)
             .fmhyRowBackground()
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Accent colour")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 16) {
-                    ForEach(AccentChoice.allCases) { choice in
-                        Button {
-                            settings.accent = choice
-                            refreshExportFile()
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(choice.color)
-                                    .frame(width: 36, height: 36)
-                                if settings.accent == choice {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundStyle(.white)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(choice.displayName)
-                    }
+            Picker("Accent colour", selection: $settings.accent) {
+                ForEach(AccentChoice.allCases) { choice in
+                    Text(choice.displayName).tag(choice)
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.vertical, 4)
             }
-            .padding(.vertical, 4)
+            .onChange(of: settings.accent) { _, _ in
+                refreshExportFile()
+            }
             .fmhyRowBackground()
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Text size")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Picker("Text size", selection: $settings.textSize) {
-                    ForEach(TextSizeChoice.allCases) { choice in
-                        Text(choice.displayName).tag(choice)
-                    }
+            Picker("Text size", selection: $settings.textSize) {
+                ForEach(TextSizeChoice.allCases) { choice in
+                    Text(choice.displayName).tag(choice)
                 }
-                .pickerStyle(.segmented)
-
-                Text("Sample preview text for readability.")
-                    .font(.subheadline)
-                    .dynamicTypeSize(settings.textSize.dynamicTypeSize)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 2)
             }
-            .padding(.vertical, 4)
             .fmhyRowBackground()
+
+            Text("Aa Bb Cc. Sites and descriptions look like this.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .dynamicTypeSize(settings.textSize.dynamicTypeSize)
+                .fmhyRowBackground()
         } header: {
             Text("Appearance")
         }
@@ -558,42 +521,17 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         SwiftUI.Section {
-            HStack {
-                Text("FMHY")
-                    .font(.headline)
-                Spacer()
-                Text(appVersionString)
-                    .foregroundStyle(.secondary)
-            }
-            .fmhyRowBackground()
-
-            Text("Official iOS port of FMHY for Android by omeg4-dev. A community app, not an official FMHY project.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            LabeledContent("Version", value: appVersionString)
                 .fmhyRowBackground()
 
-            Text("GPL-3.0-or-later")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fmhyRowBackground()
-
-            Text("No accounts, no analytics. The app only talks to GitHub (wiki data), omeg4-dev's GitHub Pages (What's new feed) and the sites you open.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            LabeledContent("License", value: "GPL-3.0-or-later")
                 .fmhyRowBackground()
 
             NavigationLink {
                 PostsView()
             } label: {
-                HStack {
-                    Label("News & posts", systemImage: "newspaper")
-                    Spacer()
-                    if postsStore.unreadCount > 0 {
-                        Text("\(postsStore.unreadCount) new")
-                            .font(.footnote)
-                            .foregroundStyle(.tint)
-                    }
-                }
+                Label("News & posts", systemImage: "newspaper")
+                    .badge(postsStore.unreadCount)
             }
             .fmhyRowBackground()
 
@@ -640,6 +578,8 @@ struct SettingsView: View {
             .fmhyRowBackground()
         } header: {
             Text("About")
+        } footer: {
+            Text("Community port of FMHY for Android by omeg4-dev, not an official FMHY project. No accounts, no analytics: the app only talks to GitHub (wiki data), omeg4-dev's GitHub Pages (What's new feed) and the sites you open.")
         }
     }
 
@@ -714,9 +654,8 @@ struct AllowlistSettingsView: View {
     var body: some View {
         List {
             if sortedHosts.isEmpty {
-                Text("No sites with blocking off")
-                    .foregroundStyle(.secondary)
-                    .fmhyRowBackground()
+                ContentUnavailableView("No Sites", systemImage: "shield.checkerboard", description: Text("Sites where you turn ad blocking off appear here."))
+                    .listRowBackground(Color.clear)
             } else {
                 ForEach(sortedHosts, id: \.self) { host in
                     Text(host)

@@ -283,25 +283,14 @@ struct ReaderView: View {
     }
 
     private var guideHeader: some View {
-        VStack(alignment: .center, spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(settings.accent.color.opacity(0.15))
-                    .frame(width: 56, height: 56)
-                Image(systemName: "graduationcap")
-                    .font(.system(size: 28))
-                    .foregroundStyle(settings.accent.color)
-            }
+        VStack(alignment: .leading, spacing: 6) {
             Text("Beginner's guide")
                 .font(.title2.bold())
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.center)
             Text("Start here: the basics of staying safe and finding things on FMHY.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
     }
 

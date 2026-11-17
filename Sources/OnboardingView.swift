@@ -57,28 +57,21 @@ struct OnboardingView: View {
             TabView(selection: $currentPage) {
                 ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
                     ScrollView {
-                        VStack(spacing: 24) {
-                            Spacer(minLength: 40)
-
+                        VStack(alignment: .leading, spacing: 16) {
                             Image(systemName: page.symbol)
-                                .font(.system(size: 76))
-                                .foregroundStyle(settings.accent.color)
-                                .padding(.bottom, 8)
+                                .font(.largeTitle)
+                                .imageScale(.large)
+                                .foregroundStyle(.tint)
 
                             Text(page.title)
                                 .font(.title2.bold())
-                                .multilineTextAlignment(.center)
-                                .foregroundStyle(.primary)
 
                             Text(page.description)
                                 .font(.body)
-                                .multilineTextAlignment(.center)
                                 .foregroundStyle(.secondary)
-                                .padding(.horizontal, 28)
-
-                            Spacer(minLength: 40)
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24)
                         .padding(.vertical, 20)
                     }
                     .tag(index)
@@ -98,23 +91,19 @@ struct OnboardingView: View {
                         Text("Next")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 50)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(settings.accent.color)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .controlSize(.large)
                 } else {
                     Button {
                         settings.completeOnboarding()
                     } label: {
-                        Text("Get started")
+                        Text("Continue")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 50)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(settings.accent.color)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .controlSize(.large)
                 }
             }
             .padding(.horizontal, 24)

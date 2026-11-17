@@ -81,6 +81,11 @@ struct ReportSheet: View {
                         dismiss()
                     }
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Open Issue") {
+                        handleOpenGitHub()
+                    }
+                }
             }
             .onAppear {
                 selectedArea = defaultArea
@@ -137,21 +142,10 @@ struct ReportSheet: View {
     private var actionsSection: some View {
         SwiftUI.Section {
             Button {
-                handleOpenGitHub()
-            } label: {
-                Label("Open GitHub issue", systemImage: "arrow.up.forward.app")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-
-            Button {
                 handleCopy()
             } label: {
-                Label(copiedNotice ? "Copied to clipboard!" : "Copy report", systemImage: copiedNotice ? "checkmark" : "doc.on.doc")
-                    .frame(maxWidth: .infinity)
+                Label(copiedNotice ? "Copied" : "Copy report", systemImage: copiedNotice ? "checkmark" : "doc.on.doc")
             }
-            .buttonStyle(.bordered)
         }
     }
 
