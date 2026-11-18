@@ -16,6 +16,8 @@ struct SectionView: View {
 
     @State private var allGroups: [SectionGroup] = []
     @State private var displayedGroups: [SectionGroup] = []
+    @State private var topGroups: [OutlineGroup] = []
+    @State private var rootNotes: [Note] = []
     @State private var filterText = ""
     @State private var selectedEntry: Entry?
     @State private var selectedNote: Note?
@@ -24,6 +26,8 @@ struct SectionView: View {
         let sectionEntries = store.entries(in: section.id)
         let sectionNotes = store.notes(in: section.id)
         let sectionHeadings = store.headings(in: section.id)
+
+        self.topGroups = SectionOutline.topGroups(headings: sectionHeadings, entries: sectionEntries)
 
         var entriesByHeading: [String: [Entry]] = [:]
         var rootEntries: [Entry] = []
@@ -44,6 +48,7 @@ struct SectionView: View {
                 rootNotes.append(note)
             }
         }
+        self.rootNotes = rootNotes
 
         var groups: [SectionGroup] = []
 
@@ -130,44 +135,16 @@ struct SectionView: View {
 
     private var regularBody: some View {
         Group {
-            if displayedGroups.isEmpty && !filterText.isEmpty {
-                ContentUnavailableView.search(text: filterText)
-            } else {
-                List {
-                    ForEach(displayedGroups) { group in
-                        if let heading = group.heading {
-                            SwiftUI.Section {
-                                ForEach(group.notes) { note in
-                                    NoteRow(text: note.text) {
-                                        selectedNote = note
-                                    }
-                                }
-                                ForEach(group.entries) { entry in
-                                    EntryRow(entry: entry) { selected in
-                                        selectedEntry = selected
-                                    }
-                                }
-                            } header: {
-                                headingHeader(heading)
-                            }
-                        } else {
-                            SwiftUI.Section {
-                                ForEach(group.notes) { note in
-                                    NoteRow(text: note.text) {
-                                        selectedNote = note
-                                    }
-                                }
-                                ForEach(group.entries) { entry in
-                                    EntryRow(entry: entry) { selected in
-                                        selectedEntry = selected
-                                    }
-                                }
-                            }
-                        }
-                    }
+            if !filterText.isEmpty {
+                if displayedGroups.isEmpty {
+                    ContentUnavailableView.search(text: filterText)
+                } else {
+                    flatList
                 }
-                .listStyle(.insetGrouped)
-                .fmhyListStyle()
+            } else if topGroups.count >= 2 {
+                overviewList
+            } else {
+                flatList
             }
         }
         .navigationTitle(section.title)
@@ -211,6 +188,84 @@ struct SectionView: View {
         .sheet(item: $selectedNote) { note in
             NoteSheet(note: note)
         }
+    }
+
+    private var overviewList: some View {
+        List {
+            if !rootNotes.isEmpty {
+                SwiftUI.Section {
+                    ForEach(rootNotes) { note in
+                        NoteRow(text: note.text) {
+                            selectedNote = note
+                        }
+                    }
+                }
+            }
+
+            SwiftUI.Section {
+                ForEach(topGroups) { group in
+                    NavigationLink(value: GroupRoute(sectionId: section.id, groupId: group.id)) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(group.title)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+
+                            if !group.preview.isEmpty {
+                                Text(group.preview)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+
+                            Text(group.siteCount == 1 ? "1 site" : "\(group.siteCount) sites")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .fmhyListStyle()
+    }
+
+    private var flatList: some View {
+        List {
+            ForEach(displayedGroups) { group in
+                if let heading = group.heading {
+                    SwiftUI.Section {
+                        ForEach(group.notes) { note in
+                            NoteRow(text: note.text) {
+                                selectedNote = note
+                            }
+                        }
+                        ForEach(group.entries) { entry in
+                            EntryRow(entry: entry) { selected in
+                                selectedEntry = selected
+                            }
+                        }
+                    } header: {
+                        headingHeader(heading)
+                    }
+                } else {
+                    SwiftUI.Section {
+                        ForEach(group.notes) { note in
+                            NoteRow(text: note.text) {
+                                selectedNote = note
+                            }
+                        }
+                        ForEach(group.entries) { entry in
+                            EntryRow(entry: entry) { selected in
+                                selectedEntry = selected
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .fmhyListStyle()
     }
 }
 

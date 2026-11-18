@@ -9,6 +9,8 @@ struct HomeView: View {
     @EnvironmentObject var changes: ChangesStore
     @EnvironmentObject var layoutStore: HomeLayoutStore
 
+    @State private var path = NavigationPath()
+    @State private var didAutoOpen = false
     @State private var showSettings = false
     @State private var showEditHome = false
     @State private var showReportSheet = false
@@ -50,7 +52,7 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             contentList
                 .navigationTitle("FMHY")
                 .navigationDestination(for: WikiSection.self) { section in
@@ -59,6 +61,9 @@ struct HomeView: View {
                     } else {
                         SectionView(section: section)
                     }
+                }
+                .navigationDestination(for: GroupRoute.self) { route in
+                    GroupView(route: route)
                 }
                 .toolbar {
                     leadingToolbar
@@ -76,6 +81,38 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showReportSheet) {
             ReportSheet()
+        }
+        .task {
+            checkAutoOpen()
+        }
+        .onChange(of: store.sections.count) { _, _ in
+            checkAutoOpen()
+        }
+    }
+
+    private func checkAutoOpen() {
+        guard !didAutoOpen else { return }
+        guard let sectionId = UserDefaults.standard.string(forKey: "section") else {
+            didAutoOpen = true
+            return
+        }
+        guard let section = store.sections.first(where: { $0.id == sectionId }) else {
+            return
+        }
+        didAutoOpen = true
+        path.append(section)
+
+        if UserDefaults.standard.object(forKey: "group") != nil {
+            let index = UserDefaults.standard.integer(forKey: "group")
+            let groups = SectionOutline.topGroups(
+                headings: store.headings(in: section.id),
+                entries: store.entries(in: section.id)
+            )
+            if !groups.isEmpty {
+                let clampedIndex = max(0, min(index, groups.count - 1))
+                let group = groups[clampedIndex]
+                path.append(GroupRoute(sectionId: section.id, groupId: group.id))
+            }
         }
     }
 
